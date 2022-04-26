@@ -1,3 +1,6 @@
+// use std::str::FromStr;
+use crate::ast::*;
+
 // lalrpop 里的约定
 grammar;
 
@@ -12,22 +15,27 @@ match {
 
 // 定义 CompUnit, 其返回值类型为 String
 // parser 在解析完成后的行为是返回 FuncDef 的值
-pub CompUnit: String = <func_def: FuncDef> => func_def;
-
-// 同上, 不解释
-FuncDef: String = {
-    <func_type: FuncType> <id: Ident> "(" ")" <block: Block> => {
-        format!("{} {}() {}", func_type, id, block)
-    }
+pub CompUnit: CompUnit = {
+    <func_def: FuncDef> => CompUnit{func_def},
 }
 
-FuncType: String = "int" => "int".to_string();
+FuncDef: FuncDef = {
+  <func_type: FuncType> <ident: Ident> "(" ")" <block: Block> => {
+    FuncDef { <> }
+  }
+}
 
-Block: String = "{" <stmt: Stmt> "}" => format!("{{ {} }}", stmt);
+FuncType: FuncType = "int" => FuncType::Int;
 
-Stmt: String = "return" <num: Number> ";" => format!("return {};", num);
+Block: Block = {
+    "{" <stmt: Stmt> "}" => Block {stmt: stmt},
+}
 
-Number: String = <num: IntConst> => num.to_string();
+Stmt: Stmt = {
+    "return" <num: Number> ";" => Stmt {ret_number: num},
+}
+
+Number: i32 = <num: IntConst> => <>;
 
 
 // 如果匹配到标识符, 就返回这个字符串
