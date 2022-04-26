@@ -1,10 +1,14 @@
 mod ast;
-
+mod koopa_ir_gen;
 
 use lalrpop_util::lalrpop_mod;
 use std::env::args;
+use std::fs;
 use std::fs::read_to_string;
+use std::fs::File;
+// use std::io::prelude::*;
 use std::io::Result;
+use std::io::Write;
 
 
 // 引用 lalrpop 生成的解析器
@@ -20,6 +24,10 @@ fn main() -> Result<()> {
     args.next();
     let output = args.next().unwrap();
 
+    println!("mode is {}.",mode);
+    println!("input is {}.", input);
+    println!("output is {}.", output);
+
     // 读取输入文件
     let input = read_to_string(input)?;
 
@@ -27,6 +35,17 @@ fn main() -> Result<()> {
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
 
     // 输出解析得到的 AST
-    println!("{:#?}", ast);
+    let koopa_program = koopa_ir_gen::Generator(ast);
+
+    let mut file = File::create(output)?;
+    file.write_all(koopa_program.as_bytes())?;
+
+    // File::create(&output)?;
+    // fs::write(output, koopa_program).expect("Unable to write file");
+
+    // println!("{:#?}", ast);
     Ok(())
 }
+
+// cargo run -- -koopa hello.c -o hello.koopa
+// autotest -koopa -s lv1 /root/compiler

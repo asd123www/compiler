@@ -19,10 +19,10 @@ pub struct FuncDef {
 #[derive(Debug)]
 pub enum FuncType {
     Int,
-    Void,
-    Double,
-    Float,
-    String,
+    // Void,
+    // Double,
+    // Float,
+    // String,
 }
 
 // Block     ::= "{" Stmt "}";
