@@ -17,30 +17,25 @@ pub struct FuncDef {
     pub block: Block,
 } */
 
-fn dfs(pt: TreePoint) -> String {
+fn dfs(pt: TreePoint, shift: &str) -> String {
     // consider the indent!
     let mut program = String::from("");
 
     match pt {
         TreePoint::CompUnit(node) => {
-            let program = dfs(TreePoint::FuncDef(node.func_def));
+            let program = dfs(TreePoint::FuncDef(node.func_def), shift);
             return program;
         },
         TreePoint::FuncDef(node) => {
-            program.push_str("fun @");  // fixed terminalogy.
-            program.push_str(&node.ident); // the title of the function.
-
-            program.push_str("(");  // begin parameters.
-            // generate the parameter();
-            program.push_str("): ");  // end parameters.
+            program.push_str(&format!("fun @{}(): ", node.ident));
 
             // get the type of return value.
-            let ret_type = dfs(TreePoint::FuncType(node.func_type));
+            let ret_type = dfs(TreePoint::FuncType(node.func_type), shift);
             program.push_str(&ret_type);
 
             // begin the structure of body.
             program.push_str(" {\n");
-            let body = dfs(TreePoint::Block(node.block));
+            let body = dfs(TreePoint::Block(node.block), shift);
             program.push_str(&body);
             program.push_str("}\n");
 
@@ -54,13 +49,13 @@ fn dfs(pt: TreePoint) -> String {
         },
         TreePoint::Block(node) => {
             program.push_str("%entry:\n");
-            let statement = dfs(TreePoint::Stmt(node.stmt));
+            let statement = dfs(TreePoint::Stmt(node.stmt), shift);
             program.push_str(&statement);
             return program;
         },
         TreePoint::Stmt(node) => {
             program.push_str("ret ");
-            program.push_str(&node.ret_number.to_string());
+            // program.push_str(&node.ret_number.to_string());
             program.push_str("\n");
 
             return program;
@@ -71,5 +66,5 @@ fn dfs(pt: TreePoint) -> String {
 
 
 pub fn Generator(start: CompUnit) -> String {
-    return dfs(TreePoint::CompUnit(start));
+    return dfs(TreePoint::CompUnit(start), "");
 }

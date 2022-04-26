@@ -34,18 +34,13 @@ fn main() -> Result<()> {
     // 调用生成的parser: sysy, 指定start non-terminal: CompUnit(结尾默认加入Parser).
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
 
-    // 输出解析得到的 AST
+    // // 输出解析得到的 AST
     let koopa_program = koopa_ir_gen::Generator(ast);
-
     let mut file = File::create(output)?;
     file.write_all(koopa_program.as_bytes())?;
 
-    // File::create(&output)?;
-    // fs::write(output, koopa_program).expect("Unable to write file");
-
-    // println!("{:#?}", ast);
     Ok(())
 }
 
 // cargo run -- -koopa hello.c -o hello.koopa
-// autotest -koopa -s lv1 /root/compiler
+// autotest -koopa -s lv1 /home/compiler
