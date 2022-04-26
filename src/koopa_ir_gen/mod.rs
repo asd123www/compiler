@@ -65,6 +65,6 @@ fn dfs(pt: TreePoint, shift: &str) -> String {
 }
 
 
-pub fn Generator(start: CompUnit) -> String {
+pub fn generator(start: CompUnit) -> String {
     return dfs(TreePoint::CompUnit(start), "");
 }

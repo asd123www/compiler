@@ -49,64 +49,64 @@ pub struct Exp {
 // LOrExp      ::= LAndExp | LOrExp "||" LAndExp;
 #[derive(Debug)]
 pub enum LOrExp {
-    landexp(LAndExp),
-    orexp(Box<LOrExp>, LAndExp),
+    Landexp(LAndExp),
+    Orexp(Box<LOrExp>, LAndExp),
 }
 
 // LAndExp     ::= EqExp | LAndExp "&&" EqExp;
 #[derive(Debug)]
 pub enum LAndExp {
-    eqexp(EqExp),
-    andexp(Box<LAndExp>, EqExp),
+    Eqexp(EqExp),
+    Andexp(Box<LAndExp>, EqExp),
 }
 
 // EqExp       ::= RelExp | EqExp ("==" | "!=") RelExp;
 #[derive(Debug)]
 pub enum EqExp {
-    relexp(RelExp),
-    eqexp(Box<EqExp>, RelExp),
-    neqexp(Box<EqExp>, RelExp),
+    Relexp(RelExp),
+    Eqexp(Box<EqExp>, RelExp),
+    Neqexp(Box<EqExp>, RelExp),
 }
 
 // RelExp      ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
 #[derive(Debug)]
 pub enum RelExp {
-    addexp(AddExp),
-    ltexp(Box<RelExp>, AddExp),
-    gtexp(Box<RelExp>, AddExp),
-    geexp(Box<RelExp>, AddExp),
-    leexp(Box<RelExp>, AddExp),
+    Addexp(AddExp),
+    Ltexp(Box<RelExp>, AddExp),
+    Gtexp(Box<RelExp>, AddExp),
+    Geexp(Box<RelExp>, AddExp),
+    Leexp(Box<RelExp>, AddExp),
 }
 
 // AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
 #[derive(Debug)]
 pub enum AddExp {
-    mulexp(MulExp),
-    addexp(Box<AddExp>, MulExp),
-    subexp(Box<AddExp>, MulExp),
+    Mulexp(MulExp),
+    Addexp(Box<AddExp>, MulExp),
+    Subexp(Box<AddExp>, MulExp),
 }
 
 // MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
 #[derive(Debug)]
 pub enum MulExp {
-    unaryexp(UnaryExp),
-    mulexp(Box<MulExp>, UnaryExp),
-    divexp(Box<MulExp>, UnaryExp),
-    modexp(Box<MulExp>, UnaryExp),
+    Unaryexp(UnaryExp),
+    Mulexp(Box<MulExp>, UnaryExp),
+    Divexp(Box<MulExp>, UnaryExp),
+    Modexp(Box<MulExp>, UnaryExp),
 }
 
 // UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
 #[derive(Debug)]
 pub enum UnaryExp {
-    primaryexp(PrimaryExp),
-    unaryexp(UnaryOp, Box<UnaryExp>),
+    Primaryexp(PrimaryExp),
+    Unaryexp(UnaryOp, Box<UnaryExp>),
 }
 
 // PrimaryExp  ::= "(" Exp ")" | Number;
 #[derive(Debug)]
 pub enum PrimaryExp {
-    exp(Box<Exp>),
-    num(i32),
+    Exp(Box<Exp>),
+    Num(i32),
 }
 
 

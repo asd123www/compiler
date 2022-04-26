@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
 
     // // 输出解析得到的 AST
-    let koopa_program = koopa_ir_gen::Generator(ast);
+    let koopa_program = koopa_ir_gen::generator(ast);
     let mut file = File::create(output)?;
     file.write_all(koopa_program.as_bytes())?;
 
