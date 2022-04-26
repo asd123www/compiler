@@ -3,7 +3,7 @@ mod koopa_ir_gen;
 
 use lalrpop_util::lalrpop_mod;
 use std::env::args;
-use std::fs;
+// use std::fs;
 use std::fs::read_to_string;
 use std::fs::File;
 // use std::io::prelude::*;

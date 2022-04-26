@@ -66,32 +66,32 @@ UnaryOp: UnaryOp = {
 // MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
 MulExp: MulExp = {
     <unaryexp: UnaryExp> => MulExp::Unaryexp(unaryexp),
-    <mulexp: MulExp> "*" <unaryexp: UnaryExp> => MulExp::Mulexp(Box::new(mulexp), unaryexp),
-    <mulexp: MulExp> "/" <unaryexp: UnaryExp> => MulExp::Divexp(Box::new(mulexp), unaryexp),
-    <mulexp: MulExp> "%" <unaryexp: UnaryExp> => MulExp::Modexp(Box::new(mulexp), unaryexp),
+    <mulexp: MulExp> "*" <unaryexp: UnaryExp> => MulExp::Mulexp(Box::new(mulexp), unaryexp, "mul".to_string()),
+    <mulexp: MulExp> "/" <unaryexp: UnaryExp> => MulExp::Divexp(Box::new(mulexp), unaryexp, "div".to_string()),
+    <mulexp: MulExp> "%" <unaryexp: UnaryExp> => MulExp::Modexp(Box::new(mulexp), unaryexp, "mod".to_string()),
 }
 
 // AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
 AddExp: AddExp = {
     <mulexp: MulExp> => AddExp::Mulexp(mulexp),
-    <addexp: AddExp> "+" <mulexp: MulExp> => AddExp::Addexp(Box::new(addexp), mulexp),
-    <addexp: AddExp> "-" <mulexp: MulExp> => AddExp::Subexp(Box::new(addexp), mulexp),
+    <addexp: AddExp> "+" <mulexp: MulExp> => AddExp::Addexp(Box::new(addexp), mulexp, "add".to_string()),
+    <addexp: AddExp> "-" <mulexp: MulExp> => AddExp::Subexp(Box::new(addexp), mulexp, "sub".to_string()),
 }
 
 // RelExp      ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
 RelExp: RelExp = {
     <addexp: AddExp> => RelExp::Addexp(addexp),
-    <relexp: RelExp> "<" <addexp: AddExp>  => RelExp::Ltexp(Box::new(relexp), addexp),
-    <relexp: RelExp> ">" <addexp: AddExp>  => RelExp::Gtexp(Box::new(relexp), addexp),
-    <relexp: RelExp> "<=" <addexp: AddExp> => RelExp::Leexp(Box::new(relexp), addexp),
-    <relexp: RelExp> ">=" <addexp: AddExp> => RelExp::Geexp(Box::new(relexp), addexp),
+    <relexp: RelExp> "<" <addexp: AddExp>  => RelExp::Ltexp(Box::new(relexp), addexp, "lt".to_string()),
+    <relexp: RelExp> ">" <addexp: AddExp>  => RelExp::Gtexp(Box::new(relexp), addexp, "gt".to_string()),
+    <relexp: RelExp> "<=" <addexp: AddExp> => RelExp::Leexp(Box::new(relexp), addexp, "le".to_string()),
+    <relexp: RelExp> ">=" <addexp: AddExp> => RelExp::Geexp(Box::new(relexp), addexp, "ge".to_string()),
 }
 
 // EqExp       ::= RelExp | EqExp ("==" | "!=") RelExp;
 EqExp: EqExp = {
     <relexp: RelExp> => EqExp::Relexp(relexp),
-    <eqexp: EqExp> "==" <relexp: RelExp> => EqExp::Eqexp(Box::new(eqexp), relexp),
-    <eqexp: EqExp> "!=" <relexp: RelExp> => EqExp::Neqexp(Box::new(eqexp), relexp),
+    <eqexp: EqExp> "==" <relexp: RelExp> => EqExp::Eqexp(Box::new(eqexp), relexp, "eq".to_string()),
+    <eqexp: EqExp> "!=" <relexp: RelExp> => EqExp::Neqexp(Box::new(eqexp), relexp, "ne".to_string()),
 }
 
 // LAndExp     ::= EqExp | LAndExp "&&" EqExp;

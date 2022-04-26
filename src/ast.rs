@@ -64,35 +64,35 @@ pub enum LAndExp {
 #[derive(Debug)]
 pub enum EqExp {
     Relexp(RelExp),
-    Eqexp(Box<EqExp>, RelExp),
-    Neqexp(Box<EqExp>, RelExp),
+    Eqexp(Box<EqExp>, RelExp, String),
+    Neqexp(Box<EqExp>, RelExp, String),
 }
 
 // RelExp      ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
 #[derive(Debug)]
 pub enum RelExp {
     Addexp(AddExp),
-    Ltexp(Box<RelExp>, AddExp),
-    Gtexp(Box<RelExp>, AddExp),
-    Geexp(Box<RelExp>, AddExp),
-    Leexp(Box<RelExp>, AddExp),
+    Ltexp(Box<RelExp>, AddExp, String),
+    Gtexp(Box<RelExp>, AddExp, String),
+    Geexp(Box<RelExp>, AddExp, String),
+    Leexp(Box<RelExp>, AddExp, String),
 }
 
 // AddExp      ::= MulExp | AddExp ("+" | "-") MulExp;
 #[derive(Debug)]
 pub enum AddExp {
     Mulexp(MulExp),
-    Addexp(Box<AddExp>, MulExp),
-    Subexp(Box<AddExp>, MulExp),
+    Addexp(Box<AddExp>, MulExp, String),
+    Subexp(Box<AddExp>, MulExp, String),
 }
 
 // MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
 #[derive(Debug)]
 pub enum MulExp {
     Unaryexp(UnaryExp),
-    Mulexp(Box<MulExp>, UnaryExp),
-    Divexp(Box<MulExp>, UnaryExp),
-    Modexp(Box<MulExp>, UnaryExp),
+    Mulexp(Box<MulExp>, UnaryExp, String),
+    Divexp(Box<MulExp>, UnaryExp, String),
+    Modexp(Box<MulExp>, UnaryExp, String),
 }
 
 // UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
