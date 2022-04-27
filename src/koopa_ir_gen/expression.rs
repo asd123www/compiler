@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ast::*;
 use crate::koopa_ir_gen::ExpRetType;
 
@@ -7,7 +9,7 @@ use crate::koopa_ir_gen::ExpRetType;
 // 2. attach a `ret` to struct store the result ID.
 
 pub trait ExpResult {
-    fn eval(&self, size: i32) -> ExpRetType;
+    fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType;
 }
 
 
@@ -15,24 +17,24 @@ pub trait ExpResult {
 
 // ConstInitVal ::= ConstExp;
 impl ExpResult for ConstInitVal {
-    fn eval(&self, size:i32) -> ExpRetType {
-        let ret_val = self.constexp.eval(size);
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+        let ret_val = self.constexp.eval(scope, size);
         return ret_val;
     }
 }
 
 // ConstExp ::= Exp;
 impl ExpResult for ConstExp {
-    fn eval(&self, size:i32) -> ExpRetType {
-        let ret_val = self.exp.eval(size);
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+        let ret_val = self.exp.eval(scope, size);
         return ret_val;
     }
 }
 
 // InitVal ::= Exp;
 impl ExpResult for InitVal {
-    fn eval(&self, size:i32) -> ExpRetType {
-        let ret_val = self.exp.eval(size);
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+        let ret_val = self.exp.eval(scope, size);
         return ret_val;
     }
 }
@@ -44,18 +46,19 @@ impl ExpResult for InitVal {
 
 // Exp ::= LOrExp;
 impl ExpResult for Exp {
-    fn eval(&self, size:i32) -> ExpRetType {
-        let ret_val = self.lorexp.eval(size);
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+        let ret_val = self.lorexp.eval(scope, size);
         return ret_val;
     }
 }
 
 // PrimaryExp ::= "(" Exp ")" | LVal | Number;
 impl ExpResult for PrimaryExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+        let mut program = String::from("");
         match self {
             PrimaryExp::Exp(exp) => {
-                let ret_val = (*exp).eval(size);
+                let ret_val = (*exp).eval(scope, size);
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -64,7 +67,6 @@ impl ExpResult for PrimaryExp {
                 };
             },
             PrimaryExp::Num(num) => {
-                let mut program = String::from("");
                 program.push_str(&format!("    %var_{} = add 0, {}\n", size + 1, num));
 
                 return ExpRetType {
@@ -73,11 +75,23 @@ impl ExpResult for PrimaryExp {
                     exp_res_id: size + 1,
                 };
             }
-            _ => {
+            PrimaryExp::Lval(lval) => {
+                let var = scope.get(&format!("{}", lval.ident)).unwrap();
+
+                if (var & 1) == 1 {
+                    return ExpRetType {
+                        size: size,
+                        program: program,
+                        exp_res_id: var >> 1,
+                    };
+                }
+
+                // %2 = load @x
+                program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, var >> 1));
                 return ExpRetType {
-                    size: 0,
-                    program: "".to_string(),
-                    exp_res_id: 0,
+                    size: size + 1,
+                    program: program,
+                    exp_res_id: size + 1,
                 };
             }
         }
@@ -86,10 +100,10 @@ impl ExpResult for PrimaryExp {
 
 // UnaryExp ::= PrimaryExp | UnaryOp UnaryExp;
 impl ExpResult for UnaryExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             UnaryExp::Primaryexp(primaryexp) => {
-                let ret_val = primaryexp.eval(size);
+                let ret_val = primaryexp.eval(scope, size);
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -98,7 +112,7 @@ impl ExpResult for UnaryExp {
                 };
             },
             UnaryExp::Unaryexp(unaryop, unaryexp) => {
-                let ret_val = unaryexp.eval(size);
+                let ret_val = unaryexp.eval(scope, size);
                 let mut program = String::from("");
 
                 match unaryop {
@@ -140,10 +154,10 @@ impl ExpResult for UnaryExp {
 
 // MulExp ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
 impl ExpResult for MulExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             MulExp::Unaryexp(unaryexp) => {
-                let ret_val = unaryexp.eval(size); 
+                let ret_val = unaryexp.eval(scope, size); 
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -154,8 +168,8 @@ impl ExpResult for MulExp {
             MulExp::Mulexp(mulexp, unaryexp, op) |
             MulExp::Divexp(mulexp, unaryexp, op) | 
             MulExp::Modexp(mulexp, unaryexp, op) => {
-                let ret_val1 = (*mulexp).eval(size);
-                let ret_val2 = unaryexp.eval(ret_val1.size);
+                let ret_val1 = (*mulexp).eval(scope, size);
+                let ret_val2 = unaryexp.eval(scope, ret_val1.size);
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -175,10 +189,10 @@ impl ExpResult for MulExp {
 
 // AddExp ::= MulExp | AddExp ("+" | "-") MulExp;
 impl ExpResult for AddExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             AddExp::Mulexp(mulexp) => {
-                let ret_val = mulexp.eval(size);
+                let ret_val = mulexp.eval(scope, size);
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -188,8 +202,8 @@ impl ExpResult for AddExp {
             },
             AddExp::Addexp(addexp, mulexp, op) |
             AddExp::Subexp(addexp, mulexp, op) => {
-                let ret_val1 = (*addexp).eval(size);
-                let ret_val2 = (*mulexp).eval(ret_val1.size);
+                let ret_val1 = (*addexp).eval(scope, size);
+                let ret_val2 = (*mulexp).eval(scope, ret_val1.size);
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -209,10 +223,10 @@ impl ExpResult for AddExp {
 
 // RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
 impl ExpResult for RelExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             RelExp::Addexp(addexp) => {
-                let ret_val = addexp.eval(size); 
+                let ret_val = addexp.eval(scope, size); 
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -224,8 +238,8 @@ impl ExpResult for RelExp {
             RelExp::Gtexp(relexp, addexp, op) |
             RelExp::Geexp(relexp, addexp, op) | 
             RelExp::Leexp(relexp, addexp, op) => {
-                let ret_val1 = (*relexp).eval(size);
-                let ret_val2 = addexp.eval(ret_val1.size); 
+                let ret_val1 = (*relexp).eval(scope, size);
+                let ret_val2 = addexp.eval(scope, ret_val1.size); 
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -245,10 +259,10 @@ impl ExpResult for RelExp {
 
 // EqExp ::= RelExp | EqExp ("==" | "!=") RelExp;
 impl ExpResult for EqExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             EqExp::Relexp(relexp) => {
-                let ret_val = relexp.eval(size); 
+                let ret_val = relexp.eval(scope, size); 
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -258,8 +272,8 @@ impl ExpResult for EqExp {
             },
             EqExp::Eqexp(eqexp, relexp, op) |
             EqExp::Neqexp(eqexp, relexp, op) => {
-                let ret_val1 = (*eqexp).eval(size);
-                let ret_val2 = relexp.eval(ret_val1.size + 1);
+                let ret_val1 = (*eqexp).eval(scope, size);
+                let ret_val2 = relexp.eval(scope, ret_val1.size + 1);
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -279,10 +293,10 @@ impl ExpResult for EqExp {
 
 // LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 impl ExpResult for LAndExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             LAndExp::Eqexp(eqexp) => {
-                let ret_val = eqexp.eval(size);
+                let ret_val = eqexp.eval(scope, size);
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -291,8 +305,8 @@ impl ExpResult for LAndExp {
                 };
             },
             LAndExp::Andexp(landexp, eqexp) => {
-                let ret_val1 = (*landexp).eval(size);
-                let ret_val2 = eqexp.eval(ret_val1.size);
+                let ret_val1 = (*landexp).eval(scope, size);
+                let ret_val2 = eqexp.eval(scope, ret_val1.size);
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -315,10 +329,10 @@ impl ExpResult for LAndExp {
 
 // LOrExp ::= LAndExp | LOrExp "||" LAndExp;
 impl ExpResult for LOrExp {
-    fn eval(&self, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
         match self {
             LOrExp::Landexp(landexp) => {
-                let ret_val = landexp.eval(size);
+                let ret_val = landexp.eval(scope, size);
 
                 return ExpRetType {
                     size: ret_val.size + 1,
@@ -327,8 +341,8 @@ impl ExpResult for LOrExp {
                 };
             },
             LOrExp::Orexp(lorexp, landexp) => {
-                let ret_val1 = (*lorexp).eval(size);
-                let ret_val2 = landexp.eval(ret_val1.size);
+                let ret_val1 = (*lorexp).eval(scope, size);
+                let ret_val2 = landexp.eval(scope, ret_val1.size);
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -338,7 +352,7 @@ impl ExpResult for LOrExp {
                 program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
                 program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
                 program.push_str(&format!("    %var_{} = or %var_{}, %var_{}\n", size + 2, size, size + 1));
-    
+
                 return ExpRetType {
                     size: size + 2,
                     program: program,

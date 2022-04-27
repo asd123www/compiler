@@ -19,27 +19,27 @@ impl Stmt {
             Stmt::LvalExp(lval, exp) => {
                 // query the scope to find variable id, and change it.
                 let id = scope.get(&lval.ident).unwrap();
-                let ret_val = exp.eval(size);
+                let ret_val = exp.eval(scope, size);
                 size = ret_val.size;
                 program.push_str(&ret_val.program);
                 // store %1, @x
-                program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, id));
+                program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, id >> 1));
 
                 return ExpRetType {
                     size: size,
                     program: program,
-                    exp_res_id: -1,
+                    exp_res_id: BODY_STATE,
                 }
             },
             Stmt::RetExp(exp) => {
-                let instrs = exp.eval(size);
+                let instrs = exp.eval(scope, size);
                 program.push_str(&instrs.program);
-                program.push_str(&format!("    ret %var_{}\n\n", instrs.exp_res_id));
+                program.push_str(&format!("    ret %var_{}\n", instrs.exp_res_id));
 
                 return ExpRetType {
-                    size: instrs.size,
+                    size: instrs.size + 1,
                     program: program,
-                    exp_res_id: instrs.exp_res_id,
+                    exp_res_id: RETURN_STATE, // return stmt => -2;
                 }
             },
         }
@@ -67,7 +67,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
 
         // CompUnit      ::= FuncDef;
         TreePoint::CompUnit(node) => {
-            let mut program = dfs(TreePoint::FuncDef(node.func_def), &scope, size);
+            let program = dfs(TreePoint::FuncDef(node.func_def), &scope, size);
             return program;
         },
 
@@ -82,6 +82,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
 
             // begin the structure of body.
             program.push_str(" {\n");
+
             let body = dfs(TreePoint::Block(node.block), &scope, ret_val.size);
             program.push_str(&body.program);
 
@@ -106,11 +107,19 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
         
         // Block ::= "{" {BlockItem} "}";
         TreePoint::Block(node) => {
+            let mut is_ret = false;
+
             for item in node.items { // enumerate the blocks in body.
-                program.push_str(&format!("\n%block_{}:\n", size + 1));
+                // set the label.
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
                 let block = item.eval(&mut scope, size + 1);
                 size = block.size;
                 program.push_str(&block.program);
+                is_ret = block.flag == RETURN_STATE;
+                if !is_ret {
+                    program.push_str(&format!("    jump %entry_{}\n", size + 1));
+                }
+                println!("flag: {}\n", block.flag);
             }
             return ExpRetType {
                 size: size,

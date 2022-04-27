@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::koopa_ir_gen::DeclRetType;
 
 
+use super::ret_types::*;
 use std::collections::HashMap;
 use crate::koopa_ir_gen::expression::ExpResult;
 
@@ -21,6 +22,7 @@ impl DeclResult for BlockItem {
                 return DeclRetType {
                     size: statement.size,
                     program: statement.program,
+                    flag: statement.exp_res_id,
                 };
             },
             BlockItem::Decl(decl) => {
@@ -28,6 +30,7 @@ impl DeclResult for BlockItem {
                 return DeclRetType {
                     size: decl_ret_val.size,
                     program: decl_ret_val.program,
+                    flag: BODY_STATE,
                 };
             }
         }
@@ -64,7 +67,7 @@ impl DeclResult for ConstDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program};
+        return DeclRetType{size, program, flag: BODY_STATE};
     }
 }
 
@@ -82,7 +85,7 @@ impl DeclResult for VarDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program};
+        return DeclRetType{size, program, flag: BODY_STATE};
     }
 }
 
@@ -90,13 +93,13 @@ impl DeclResult for VarDecl {
 // ConstDef ::= IDENT "=" ConstInitVal;
 impl DeclResult for ConstDef {
     fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
-        let ret_val = self.constinitval.eval(size);
+        let ret_val = self.constinitval.eval(scope, size);
         let size = ret_val.size;
 
         // the constant's value is the expression.
-        scope.insert(format!("imu_{}", self.ident), ret_val.exp_res_id);
+        scope.insert(format!("{}", self.ident), (ret_val.exp_res_id) << 1 | 1);
 
-        return DeclRetType {size, program: ret_val.program};
+        return DeclRetType {size, program: ret_val.program, flag: BODY_STATE};
     }
 }
 
@@ -107,23 +110,25 @@ impl DeclResult for VarDef {
         match self {
             VarDef::Ident(ident) => {
                 // define.
-                scope.insert(format!("mut_{}", ident), size + 1);
+                scope.insert(format!("{}", ident), (size + 1) << 1);
                 // @x = alloc i32
                 program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
 
-                return DeclRetType {size: size + 1, program};
+                return DeclRetType {size: size + 1, program, flag: BODY_STATE};
             },
             VarDef::Identinitval(ident, initval) => {
-                let ret_val = initval.eval(size);
+                let ret_val = initval.eval(scope, size);
                 let size = ret_val.size;
+                
+                program.push_str(&ret_val.program);
                 // define.
-                scope.insert(format!("mut_{}", ident), size + 1);
+                scope.insert(format!("{}", ident), (size + 1) << 1);
                 // @x = alloc i32
                 program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
                 // assignment: store %1, @x
                 program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, size + 1)); // currently only i32.
 
-                return DeclRetType {size: size + 1, program};
+                return DeclRetType {size: size + 1, program, flag: BODY_STATE};
             },
         }
     }

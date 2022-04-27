@@ -39,11 +39,19 @@ pub enum BlockItem {
     Stmt(Stmt),
 }
 
+
+// Stmt ::= LVal "=" Exp ";"
+//        | [Exp] ";"
+//        | Block
+//        | "return" [Exp] ";";
+
 // Stmt          ::= LVal "=" Exp ";"  |  "return" Exp ";" ;
 #[derive(Debug)]
 pub enum Stmt {
     RetExp(Exp),
     LvalExp(LVal, Exp),
+    // SingleExp(Exp),
+    // Block(Block),
 }
 
 
