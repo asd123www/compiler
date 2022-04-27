@@ -1,8 +1,7 @@
 fun @main(): i32 {
 %entry1:
+%var_2 = add 0, 1
 %var_2 = add 0, 2
-%var_9 = add 0, 4
-%var_15 = and %var_2, %var_9
-%var_16 = ne 0, %var_15
-ret %var_16
+%var_7 = eq %var_2, %var_2
+ret %var_7
 }
