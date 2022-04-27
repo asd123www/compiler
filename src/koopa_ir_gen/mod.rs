@@ -78,12 +78,12 @@ fn dfs(pt: TreePoint, size: i32) -> ExpRetType {
         },
 
         TreePoint::Stmt(node) => {
-            program.push_str(&format!("%entry{}:\n", size));
+            program.push_str(&format!("\n%entry{}:\n", size));
 
             let instrs = node.exp.eval(size);
             program.push_str(&instrs.program);
 
-            program.push_str(&format!("ret %var_{}\n", instrs.exp_res_id));
+            program.push_str(&format!("    ret %var_{}\n", instrs.exp_res_id));
 
             return ExpRetType {
                 size: instrs.size + 1,

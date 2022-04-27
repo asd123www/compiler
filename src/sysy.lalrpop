@@ -60,7 +60,7 @@ UnaryExp: UnaryExp = {
 UnaryOp: UnaryOp = {
     "+" => UnaryOp::Add,
     "-" => UnaryOp::Sub,
-    "!" => UnaryOp::Exclamation,
+    "!" => UnaryOp::Not,
 }
 
 // MulExp      ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;

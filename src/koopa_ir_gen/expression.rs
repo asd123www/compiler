@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::koopa_ir_gen::ExpRetType;
-use crate::ast::*;
 
 
 // how to maintain the expression result?
@@ -37,7 +36,7 @@ impl ExpResult for PrimaryExp {
             },
             PrimaryExp::Num(num) => {
                 let mut program = String::from("");
-                program.push_str(&format!("%var_{} = add 0, {}\n", size + 1, num));
+                program.push_str(&format!("    %var_{} = add 0, {}\n", size + 1, num));
 
                 return ExpRetType {
                     size: size + 1,
@@ -76,7 +75,7 @@ impl ExpResult for UnaryExp {
                     UnaryOp::Sub => {
                         let size = ret_val.size + 1;
                         program.push_str(&ret_val.program);
-                        program.push_str(&format!("%var_{} = sub 0, %var_{}\n", size, ret_val.exp_res_id));
+                        program.push_str(&format!("    %var_{} = sub 0, %var_{}\n", size, ret_val.exp_res_id));
 
                         return ExpRetType {
                             size: size,
@@ -84,10 +83,10 @@ impl ExpResult for UnaryExp {
                             exp_res_id: size,
                         };
                     },
-                    UnaryOp::Exclamation => {
+                    UnaryOp::Not => {
                         let size = ret_val.size + 1;
                         program.push_str(&ret_val.program);
-                        program.push_str(&format!("%var_{} = eq 0, %var_{}\n", size, ret_val.exp_res_id));
+                        program.push_str(&format!("    %var_{} = eq 0, %var_{}\n", size, ret_val.exp_res_id));
 
                         return ExpRetType {
                             size: size,
@@ -124,7 +123,7 @@ impl ExpResult for MulExp {
 
                 program.push_str(&ret_val1.program);
                 program.push_str(&ret_val2.program);
-                program.push_str(&format!("%var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
+                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
     
                 return ExpRetType {
                     size: size,
@@ -159,7 +158,7 @@ impl ExpResult for AddExp {
 
                 program.push_str(&ret_val1.program);
                 program.push_str(&ret_val2.program);
-                program.push_str(&format!("%var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
+                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
     
                 return ExpRetType {
                     size: size,
@@ -196,7 +195,7 @@ impl ExpResult for RelExp {
 
                 program.push_str(&ret_val1.program);
                 program.push_str(&ret_val2.program);
-                program.push_str(&format!("%var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
+                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
     
                 return ExpRetType {
                     size: size,
@@ -232,7 +231,7 @@ impl ExpResult for EqExp {
 
                 program.push_str(&ret_val1.program);
                 program.push_str(&ret_val2.program);
-                program.push_str(&format!("%var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
+                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
     
                 return ExpRetType {
                     size: size,
@@ -268,9 +267,9 @@ impl ExpResult for LAndExp {
                 program.push_str(&ret_val1.program);
                 program.push_str(&ret_val2.program);
                 
-                program.push_str(&format!("%var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
-                program.push_str(&format!("%var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
-                program.push_str(&format!("%var_{} = and %var_{}, %var_{}\n", size + 2, size, size + 1));
+                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
+                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
+                program.push_str(&format!("    %var_{} = and %var_{}, %var_{}\n", size + 2, size, size + 1));
     
                 return ExpRetType {
                     size: size + 2,
@@ -304,9 +303,9 @@ impl ExpResult for LOrExp {
                 program.push_str(&ret_val1.program);
                 program.push_str(&ret_val2.program);
     
-                program.push_str(&format!("%var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
-                program.push_str(&format!("%var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
-                program.push_str(&format!("%var_{} = or %var_{}, %var_{}\n", size + 2, size, size + 1));
+                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
+                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
+                program.push_str(&format!("    %var_{} = or %var_{}, %var_{}\n", size + 2, size, size + 1));
     
                 return ExpRetType {
                     size: size + 2,

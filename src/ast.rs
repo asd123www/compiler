@@ -116,5 +116,5 @@ pub enum PrimaryExp {
 pub enum UnaryOp {
     Add,
     Sub,
-    Exclamation,
+    Not,
 }
