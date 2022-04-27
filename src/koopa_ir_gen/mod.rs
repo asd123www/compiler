@@ -32,7 +32,6 @@ fn dfs(pt: TreePoint, size: i32) -> ExpRetType {
         TreePoint::FuncDef(node) => {
             program.push_str(&format!("fun @{}(): ", node.ident));
 
-
             // get the type of return value.
             let ret_val = dfs(TreePoint::FuncType(node.func_type), size);
             program.push_str(&ret_val.program);

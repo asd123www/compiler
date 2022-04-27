@@ -25,26 +25,117 @@ pub enum FuncType {
 }
 
 // Block     ::= "{" Stmt "}";
+// Block         ::= "{" {BlockItem} "}";
 #[derive(Debug)]
 pub struct Block {
-    pub stmt: Stmt,
+    pub items: Vec<BlockItem>,
 }
 
-// Stmt      ::= "return" Number ";";
+
+// BlockItem     ::= Decl | Stmt;
 #[derive(Debug)]
-pub struct Stmt {
+pub enum BlockItem {
+    Decl(Decl),
+    Stmt(Stmt),
+}
+
+// Stmt          ::= LVal "=" Exp ";"  |  "return" Exp ";" ;
+#[derive(Debug)]
+pub enum Stmt {
+    RetExp(Exp),
+    LvalExp(LVal, Exp),
+}
+
+
+
+
+
+
+
+
+
+// ------------------------------ Variable ------------------------------------------
+
+// LVal          ::= IDENT;
+#[derive(Debug)]
+pub struct LVal {
+    pub ident: String,
+}
+
+// Decl          ::= ConstDecl | VarDecl;
+#[derive(Debug)]
+pub enum Decl {
+    Constdecl(ConstDecl),
+    Vardecl(VarDecl),
+}
+
+// ConstDecl     ::= "const" BType ConstDef {"," ConstDef} ";";
+#[derive(Debug)]
+pub struct ConstDecl {
+    pub btype: BType,
+    pub constdefs: Vec<ConstDef>,
+}
+// VarDecl       ::= BType VarDef {"," VarDef} ";";
+#[derive(Debug)]
+pub struct VarDecl {
+    pub btype: BType,
+    pub vardefs: Vec<VarDef>,
+}
+
+// BType         ::= "int";
+#[derive(Debug)]
+pub enum BType {
+    Int,
+    // Void,
+    // Double,
+    // Float,
+    // String,
+}
+
+// ConstDef      ::= IDENT "=" ConstInitVal;
+#[derive(Debug)]
+pub struct ConstDef {
+    pub ident: String,
+    pub constinitval: ConstInitVal,
+}
+// VarDef        ::= IDENT | IDENT "=" InitVal;
+#[derive(Debug)]
+pub enum VarDef {
+    Ident(String),
+    Identinitval(String, InitVal),
+}
+
+// ConstInitVal  ::= ConstExp;
+#[derive(Debug)]
+pub struct ConstInitVal {
+    pub constexp: ConstExp,
+}
+
+// InitVal       ::= Exp;
+#[derive(Debug)]
+pub struct InitVal {
     pub exp: Exp,
 }
 
 
 
 
+
+
+
+// ------------------------------ Expression ------------------------------------------
+
+// ConstExp      ::= Exp;
+#[derive(Debug)]
+pub struct ConstExp {
+    pub exp: Exp,
+}
+
 // Exp         ::= LOrExp;
 #[derive(Debug)]
 pub struct Exp {
     pub lorexp: LOrExp,
 }
-
 
 // LOrExp      ::= LAndExp | LOrExp "||" LAndExp;
 #[derive(Debug)]
@@ -102,14 +193,13 @@ pub enum UnaryExp {
     Unaryexp(UnaryOp, Box<UnaryExp>),
 }
 
-// PrimaryExp  ::= "(" Exp ")" | Number;
+// PrimaryExp    ::= "(" Exp ")" | LVal | Number;
 #[derive(Debug)]
 pub enum PrimaryExp {
     Exp(Box<Exp>),
+    Lval(LVal),
     Num(i32),
 }
-
-
 
 // UnaryOp     ::= "+" | "-" | "!";
 #[derive(Debug)]

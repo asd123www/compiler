@@ -20,6 +20,7 @@ pub CompUnit: CompUnit = {
     <func_def: FuncDef> => CompUnit{func_def},
 }
 
+
 FuncDef: FuncDef = {
   <func_type: FuncType> <ident: Ident> "(" ")" <block: Block> => {
     FuncDef { <> }
@@ -28,12 +29,94 @@ FuncDef: FuncDef = {
 
 FuncType: FuncType = "int" => FuncType::Int;
 
+// Block         ::= "{" {BlockItem} "}";
 Block: Block = {
-    "{" <stmt: Stmt> "}" => Block {stmt: stmt},
+    "{" <mut items: (<BlockItem>)*> "}" => Block {items},   
 }
 
+// BlockItem     ::= Decl | Stmt;
+BlockItem: BlockItem = {
+    <decl: Decl> => BlockItem::Decl(decl),
+    <stmt: Stmt> => BlockItem::Stmt(stmt),
+}
+
+// Stmt          ::= LVal "=" Exp ";" | "return" Exp ";";
 Stmt: Stmt = {
-    "return" <exp: Exp> ";" => Stmt {exp},
+    "return" <exp: Exp> ";" => Stmt::RetExp(exp),
+    <lval: LVal> "=" <exp: Exp> ";" => Stmt::LvalExp(lval, exp),
+}
+
+
+
+
+
+
+
+
+
+
+// ------------------------------ Variable ------------------------------------------
+
+// LVal          ::= IDENT;
+LVal: LVal = {
+    <ident: Ident> => LVal {ident}, 
+}
+
+// Decl          ::= ConstDecl | VarDecl;
+Decl: Decl = {
+    <constdecl: ConstDecl> => Decl::Constdecl(constdecl),
+    <vardecl: VarDecl> => Decl::Vardecl(vardecl),
+}
+
+// ConstDecl     ::= "const" BType ConstDef {"," ConstDef} ";";
+ConstDecl: ConstDecl = {
+    "const" <btype: BType> <def: ConstDef> <mut constdefs: ("," <ConstDef>)*> ";"  => {
+        constdefs.insert(0, def); // def is the first.
+        ConstDecl {btype, constdefs}
+    },
+}
+
+// VarDecl       ::= BType VarDef {"," VarDef} ";";
+VarDecl: VarDecl = {
+    <btype: BType> <def: VarDef> <mut vardefs: ("," <VarDef>)*> ";" => {
+        vardefs.insert(0, def);
+        VarDecl {btype, vardefs}
+    }
+}
+
+// BType         ::= "int";
+BType: BType = "int" => BType::Int;
+
+
+// ConstDef      ::= IDENT "=" ConstInitVal;
+ConstDef: ConstDef = {
+    <ident: Ident> "=" <constinitval: ConstInitVal> => ConstDef{ident, constinitval},
+}
+// VarDef        ::= IDENT | IDENT "=" InitVal;
+VarDef: VarDef = {
+    <ident: Ident> => VarDef::Ident(ident),
+    <ident: Ident> "=" <initval: InitVal> => VarDef::Identinitval(ident, initval),
+}
+
+
+// ConstInitVal  ::= ConstExp;
+ConstInitVal: ConstInitVal = {
+    <constexp: ConstExp> => ConstInitVal{constexp},
+}
+
+// InitVal       ::= Exp;
+InitVal: InitVal = {
+    <exp: Exp> => InitVal{exp},
+}
+
+
+
+
+// ------------------------------ Expression ------------------------------------------
+
+// ConstExp      ::= Exp;
+ConstExp: ConstExp = {
+    <exp: Exp> => ConstExp{exp},
 }
 
 
@@ -42,13 +125,12 @@ Exp: Exp = {
     <lorexp: LOrExp> => Exp{lorexp},
 }
 
-
-// PrimaryExp  ::= "(" Exp ")" | Number;
+// PrimaryExp    ::= "(" Exp ")" | LVal | Number;
 PrimaryExp: PrimaryExp = {
     "(" <exp: Exp> ")" => PrimaryExp::Exp(Box::new(exp)),
+    <lval: LVal> => PrimaryExp::Lval(lval),
     <num: Number> => PrimaryExp::Num(num),
 }
-
 
 // UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
 UnaryExp: UnaryExp = {
