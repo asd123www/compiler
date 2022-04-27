@@ -15,7 +15,6 @@ pub trait DeclResult {
 impl DeclResult for BlockItem {
     fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
         // BlockItem ::= Decl | Stmt;
-        let mut program = "".to_string();
         match self {
             BlockItem::Stmt(stmt) => {
                 let statement = stmt.eval(&scope, size);
@@ -59,9 +58,9 @@ impl DeclResult for ConstDecl {
         let mut size = size;
         let mut program = "".to_string();
 
-        let type_str = match self.btype {
-            _ => "int",
-        };
+        // let type_str = match self.btype {
+        //     _ => "int",
+        // };
         for def in &self.constdefs {
             let ret_val = def.eval(scope, size);
             program.push_str(&ret_val.program);
@@ -76,10 +75,9 @@ impl DeclResult for VarDecl {
     fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
-
-        let type_str = match self.btype {
-            _ => "int",
-        };
+        // let type_str = match self.btype {
+        //     _ => "int",
+        // };
         for def in &self.vardefs {
             let ret_val = def.eval(scope, size);
             program.push_str(&ret_val.program);

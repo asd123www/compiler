@@ -107,7 +107,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
         
         // Block ::= "{" {BlockItem} "}";
         TreePoint::Block(node) => {
-            let mut is_ret = false;
+            let mut is_ret : bool;
 
             for item in node.items { // enumerate the blocks in body.
                 // set the label.
