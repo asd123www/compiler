@@ -10,18 +10,47 @@ pub trait ExpResult {
     fn eval(&self, size: i32) -> ExpRetType;
 }
 
-impl ExpResult for Exp {
-    fn eval(&self, size:i32) -> ExpRetType {
-        let ret_val = self.lorexp.eval(size);
 
-        return ExpRetType{
-            size: ret_val.size + 1,
-            program: ret_val.program,
-            exp_res_id: ret_val.exp_res_id,
-        };
+// --------------------------------------- lv4 ------------------------------------------------
+
+// ConstInitVal ::= ConstExp;
+impl ExpResult for ConstInitVal {
+    fn eval(&self, size:i32) -> ExpRetType {
+        let ret_val = self.constexp.eval(size);
+        return ret_val;
     }
 }
 
+// ConstExp ::= Exp;
+impl ExpResult for ConstExp {
+    fn eval(&self, size:i32) -> ExpRetType {
+        let ret_val = self.exp.eval(size);
+        return ret_val;
+    }
+}
+
+// InitVal ::= Exp;
+impl ExpResult for InitVal {
+    fn eval(&self, size:i32) -> ExpRetType {
+        let ret_val = self.exp.eval(size);
+        return ret_val;
+    }
+}
+
+
+
+
+// --------------------------------------- lv3 ------------------------------------------------
+
+// Exp ::= LOrExp;
+impl ExpResult for Exp {
+    fn eval(&self, size:i32) -> ExpRetType {
+        let ret_val = self.lorexp.eval(size);
+        return ret_val;
+    }
+}
+
+// PrimaryExp ::= "(" Exp ")" | LVal | Number;
 impl ExpResult for PrimaryExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -44,10 +73,18 @@ impl ExpResult for PrimaryExp {
                     exp_res_id: size + 1,
                 };
             }
+            _ => {
+                return ExpRetType {
+                    size: 0,
+                    program: "".to_string(),
+                    exp_res_id: 0,
+                };
+            }
         }
     }
 }
 
+// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp;
 impl ExpResult for UnaryExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -101,6 +138,7 @@ impl ExpResult for UnaryExp {
 }
 
 
+// MulExp ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
 impl ExpResult for MulExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -135,8 +173,7 @@ impl ExpResult for MulExp {
     }
 }
 
-
-
+// AddExp ::= MulExp | AddExp ("+" | "-") MulExp;
 impl ExpResult for AddExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -170,8 +207,7 @@ impl ExpResult for AddExp {
     }
 }
 
-
-
+// RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
 impl ExpResult for RelExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -207,9 +243,7 @@ impl ExpResult for RelExp {
     }
 }
 
-
-
-
+// EqExp ::= RelExp | EqExp ("==" | "!=") RelExp;
 impl ExpResult for EqExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -243,9 +277,7 @@ impl ExpResult for EqExp {
     }
 }
 
-
-
-
+// LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 impl ExpResult for LAndExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
@@ -281,7 +313,7 @@ impl ExpResult for LAndExp {
     }
 }
 
-
+// LOrExp ::= LAndExp | LOrExp "||" LAndExp;
 impl ExpResult for LOrExp {
     fn eval(&self, size:i32) -> ExpRetType {
         match self {
