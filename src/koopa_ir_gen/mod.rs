@@ -28,7 +28,7 @@ impl Stmt {
                 return ExpRetType {
                     size: size,
                     program: program,
-                    exp_res_id: BODY_STATE,
+                    exp_res_id: REGULAR_STATE,
                 }
             },
             Stmt::RetExp(exp) => {
@@ -42,16 +42,33 @@ impl Stmt {
                     exp_res_id: RETURN_STATE, // return stmt => -2;
                 }
             },
+
+            Stmt::SingleExp(exp) => {
+                let ret_val = exp.eval(scope, size);
+                ret_val
+            },
+
+            // fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
+            Stmt::Block(block) => {
+                let ret_val = dfs(TreePoint::Block(block), scope, size);
+                ret_val
+            },
+
+            Stmt::ZeroExp() => {
+                ExpRetType {
+                    size, program, exp_res_id: REGULAR_STATE
+                }
+            }
         }
     }
 }
 
 
-enum TreePoint {
+enum TreePoint<'a> {
     CompUnit(CompUnit),
     FuncDef(FuncDef),
     FuncType(FuncType),
-    Block(Block),
+    Block(&'a Block),
 }
 
 
@@ -83,7 +100,8 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             // begin the structure of body.
             program.push_str(" {\n");
 
-            let body = dfs(TreePoint::Block(node.block), &scope, ret_val.size);
+            program.push_str(&format!("\n%entry_{}:\n", ret_val.size + 1));
+            let body = dfs(TreePoint::Block(&node.block), &scope, ret_val.size + 1);
             program.push_str(&body.program);
 
             program.push_str("}\n");
@@ -107,19 +125,11 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
         
         // Block ::= "{" {BlockItem} "}";
         TreePoint::Block(node) => {
-            let mut is_ret : bool;
-
-            for item in node.items { // enumerate the blocks in body.
+            for item in &node.items { // enumerate the blocks in body.
                 // set the label.
-                program.push_str(&format!("\n%entry_{}:\n", size + 1));
-                let block = item.eval(&mut scope, size + 1);
+                let block = item.eval(&mut scope, size);
                 size = block.size;
                 program.push_str(&block.program);
-                is_ret = block.flag == RETURN_STATE;
-                if !is_ret {
-                    program.push_str(&format!("    jump %entry_{}\n", size + 1));
-                }
-                println!("flag: {}\n", block.flag);
             }
             return ExpRetType {
                 size: size,

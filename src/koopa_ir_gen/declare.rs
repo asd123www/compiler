@@ -29,7 +29,7 @@ impl DeclResult for BlockItem {
                 return DeclRetType {
                     size: decl_ret_val.size,
                     program: decl_ret_val.program,
-                    flag: BODY_STATE,
+                    flag: REGULAR_STATE,
                 };
             }
         }
@@ -66,7 +66,7 @@ impl DeclResult for ConstDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program, flag: BODY_STATE};
+        return DeclRetType{size, program, flag: REGULAR_STATE};
     }
 }
 
@@ -83,7 +83,7 @@ impl DeclResult for VarDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program, flag: BODY_STATE};
+        return DeclRetType{size, program, flag: REGULAR_STATE};
     }
 }
 
@@ -97,7 +97,7 @@ impl DeclResult for ConstDef {
         // the constant's value is the expression.
         scope.insert(format!("{}", self.ident), (ret_val.exp_res_id) << 1 | 1);
 
-        return DeclRetType {size, program: ret_val.program, flag: BODY_STATE};
+        return DeclRetType {size, program: ret_val.program, flag: REGULAR_STATE};
     }
 }
 
@@ -112,7 +112,7 @@ impl DeclResult for VarDef {
                 // @x = alloc i32
                 program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
 
-                return DeclRetType {size: size + 1, program, flag: BODY_STATE};
+                return DeclRetType {size: size + 1, program, flag: REGULAR_STATE};
             },
             VarDef::Identinitval(ident, initval) => {
                 let ret_val = initval.eval(scope, size);
@@ -126,7 +126,7 @@ impl DeclResult for VarDef {
                 // assignment: store %1, @x
                 program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, size + 1)); // currently only i32.
 
-                return DeclRetType {size: size + 1, program, flag: BODY_STATE};
+                return DeclRetType {size: size + 1, program, flag: REGULAR_STATE};
             },
         }
     }
