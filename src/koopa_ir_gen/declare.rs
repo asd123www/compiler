@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::koopa_ir_gen::DeclRetType;
 
 
-use super::ret_types::*;
+// use super::ret_types::*;
 use std::collections::HashMap;
 use crate::koopa_ir_gen::expression::ExpResult;
 

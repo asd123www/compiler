@@ -1,6 +1,6 @@
 
 
-use std::{collections::HashMap, fs::OpenOptions};
+use std::{collections::HashMap};
 
 use crate::{koopa_ir_gen::expression::ExpResult, ast::{*}};
 
@@ -111,7 +111,6 @@ impl OpenStatement {
 //                 | IF '(' expression ')' closed_statement ELSE closed_statement
 impl ClosedStatement {
     pub fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType {
-        let mut size = size;
         let mut program = "".to_string();
         match self {
             ClosedStatement::Stmt(stmt) => {
