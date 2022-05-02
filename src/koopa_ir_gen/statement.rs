@@ -186,7 +186,7 @@ impl Stmt {
 
             // fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             Stmt::Block(block) => {
-                let ret_val = dfs(TreePoint::Block(block), scope, size);
+                let ret_val = dfs(TreePoint::Block(block), &scope, size);
                 ret_val
             },
 

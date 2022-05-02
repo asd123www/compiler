@@ -1,6 +1,10 @@
-int main() {
-  if (0) return 0;
-  else while (0) while(0) if (0) return 0;
+int half(int x) {
+  return x / 2;
+}
 
-  return -1;
+void f() {}
+
+int main() {
+  f();
+  return half(10);
 }

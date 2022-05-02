@@ -243,7 +243,7 @@ pub enum MulExp {
 
 // UnaryExp    ::= PrimaryExp
 //               | IDENT "(" [FuncRParams] ")"
-//               | UnaryOp UnaryExp;
+//               | UnaryOp UnaryExp
 #[derive(Debug)]
 pub enum UnaryExp {
     Primaryexp(PrimaryExp),

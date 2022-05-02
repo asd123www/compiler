@@ -17,3 +17,6 @@ Short-circuit evaluation by `jump`.
 
 ### For while 
 After every `while`, we can substitute the `<replace_me_with_break>` `<replace_me_with_continue>` to corresponding jump.
+
+### Function
+好像这个return value有点恶心啊.

@@ -98,9 +98,13 @@ impl ExpResult for PrimaryExp {
     }
 }
 
-// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp;
+// UnaryExp ::= PrimaryExp 
+//            | UnaryOp UnaryExp
+//            | IDENT "(" [FuncRParams] ")"
 impl ExpResult for UnaryExp {
     fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+        let mut size = size;
+        let mut program = String::from("");
         match self {
             UnaryExp::Primaryexp(primaryexp) => {
                 let ret_val = primaryexp.eval(scope, size);
@@ -111,9 +115,52 @@ impl ExpResult for UnaryExp {
                     exp_res_id: ret_val.exp_res_id,
                 };
             },
+            UnaryExp::Funcall(ident, params) => {
+                // %0 = call @half(10)
+                let mut params_str = format!("call @{}(", &ident);
+                match params {
+                    None => {},
+                    Some(v) => {
+                        let mut is_first = true;
+                        for exp in &v.params {
+                            let ret_val = exp.eval(scope, size);
+                            size = ret_val.size;
+
+                            // we should first evaluate all the value, then use it.
+                            program.push_str(&ret_val.program);
+                            if is_first {
+                                params_str.push_str(&format!("%var_{}", ret_val.exp_res_id));
+                            } else {
+                                params_str.push_str(&format!(",%var_{}", ret_val.exp_res_id));
+                            }
+                            is_first = false;
+                        }
+                    },
+                }
+                params_str.push_str(")\n");
+
+                // is it return type `void` or `int`?
+                println!("query: {}_function\n", &ident);
+                let is_void = scope.get(&format!("{}_function", &ident)).unwrap();
+                if *is_void == 0 { // it is `int`
+                    params_str = format!("    %var_{} = {}", size + 1, params_str);
+                    program.push_str(&params_str);
+                    return ExpRetType {
+                        size: size + 1,
+                        program: program,
+                        exp_res_id: size + 1,
+                    }
+                }
+                
+                program.push_str(&params_str);
+                return ExpRetType {
+                    size: size,
+                    program: program,
+                    exp_res_id: -1,
+                }
+            },
             UnaryExp::Unaryexp(unaryop, unaryexp) => {
                 let ret_val = unaryexp.eval(scope, size);
-                let mut program = String::from("");
 
                 match unaryop {
                     UnaryOp::Add => {
@@ -146,7 +193,7 @@ impl ExpResult for UnaryExp {
                         };
                     },
                 }
-            }
+            },
         }
     }
 }
