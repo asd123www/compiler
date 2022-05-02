@@ -14,20 +14,46 @@ match {
     _
 }
 
-// 定义 CompUnit, 其返回值类型为 String
-// parser 在解析完成后的行为是返回 FuncDef 的值
+
+
+// ------------------------------ Function ------------------------------------------
+
+// CompUnit    ::= [CompUnit] FuncDef
 pub CompUnit: CompUnit = {
-    <func_def: FuncDef> => CompUnit{func_def},
+    <func_def: FuncDef> => CompUnit::Single(func_def),
+    <compunit: CompUnit> <func_def: FuncDef> => CompUnit::Multiple(func_def, Box::new(compunit)),
 }
 
-
+// FuncDef     ::= FuncType IDENT "(" [FuncFParams] ")" Block;
 FuncDef: FuncDef = {
-  <func_type: FuncType> <ident: Ident> "(" ")" <block: Block> => {
-    FuncDef { <> }
-  }
+  <func_type: FuncType> <ident: Ident> "(" ")" <block: Block> => FuncDef {func_type, ident, block, params: None},
+
+  <func_type: FuncType> <ident: Ident> "(" <param: FuncFParams> ")" <block: Block> => 
+        FuncDef {func_type, ident, block, params: Some(param)},
 }
 
-FuncType: FuncType = "int" => FuncType::Int;
+FuncType: FuncType = {
+    "int" => FuncType::Int,
+    "void" => FuncType::Void,
+}
+
+
+// FuncFParams ::= FuncFParam {"," FuncFParam};
+FuncFParams: FuncFParams = {
+    <param: FuncFParam> <mut params: ("," <FuncFParam>)*> => {
+        params.insert(0, param); // param is the first.
+        FuncFParams {params}
+    },
+}
+
+// FuncFParam  ::= BType IDENT;
+FuncFParam: FuncFParam = {
+    <btype: BType> <ident: Ident> => FuncFParam{btype, ident},
+}
+
+
+
+// ------------------------------ body ------------------------------------------
 
 // Block         ::= "{" {BlockItem} "}";
 Block: Block = {
@@ -81,6 +107,12 @@ Stmt: Stmt = {
     "break" ";" => Stmt::BreakKeyWord(),
     "continue" ";" => Stmt::ContinueKeyWord(),
 }
+
+
+
+
+
+
 
 
 
@@ -141,13 +173,14 @@ InitVal: InitVal = {
 
 
 
+
+
 // ------------------------------ Expression ------------------------------------------
 
 // ConstExp      ::= Exp;
 ConstExp: ConstExp = {
     <exp: Exp> => ConstExp{exp},
 }
-
 
 // LOrExp
 Exp: Exp = {
@@ -161,10 +194,23 @@ PrimaryExp: PrimaryExp = {
     <num: Number> => PrimaryExp::Num(num),
 }
 
-// UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
+// UnaryExp  ::= PrimaryExp 
+//             | UnaryOp UnaryExp
+//             | IDENT "(" [FuncRParams] ")"
 UnaryExp: UnaryExp = {
     <primaryexp: PrimaryExp> => UnaryExp::Primaryexp(primaryexp),
-    <unaryop: UnaryOp> <unaryexp: UnaryExp> => UnaryExp::Unaryexp(unaryop, Box::new(unaryexp)), 
+    <unaryop: UnaryOp> <unaryexp: UnaryExp> => UnaryExp::Unaryexp(unaryop, Box::new(unaryexp)),
+
+    <ident: Ident> "(" ")" => UnaryExp::Funcall(ident, None),
+    <ident: Ident> "(" <params: FuncRParams> ")" => UnaryExp::Funcall(ident, Some(params)),
+}
+
+// FuncRParams ::= Exp {"," Exp};
+FuncRParams: FuncRParams = {
+    <param: Exp> <mut params: ("," <Exp>)*> => {
+        params.insert(0, param); // param is the first.
+        FuncRParams {params}
+    },
 }
 
 // UnaryOp     ::= "+" | "-" | "!";

@@ -1,30 +1,50 @@
 
-// CompUnit  ::= FuncDef;
+// ------------------------------ Function ------------------------------------------
+
+// CompUnit  ::= [CompUnit] FuncDef;
 #[derive(Debug)]
-pub struct CompUnit {
-    pub func_def: FuncDef,
+pub enum CompUnit {
+    Single(FuncDef),
+    Multiple(FuncDef, Box<CompUnit>),
 }
 
 
-// FuncDef   ::= FuncType IDENT "(" ")" Block;
+// [...]代表里面出现0或1次.
+// FuncDef   ::= FuncType IDENT "(" [FuncFParams] ")" Block;
 #[derive(Debug)]
 pub struct FuncDef {
     pub func_type: FuncType,
     pub ident: String,
     pub block: Block,
+    pub params: Option<FuncFParams>,
 }
 
-// FuncType  ::= "int";
+// FuncFParams ::= FuncFParam {"," FuncFParam};
+#[derive(Debug)]
+pub struct FuncFParams {
+    pub params: Vec<FuncFParam>,
+}
+
+// FuncFParam  ::= BType IDENT;
+#[derive(Debug)]
+pub struct FuncFParam {
+    pub btype: BType,
+    pub ident: String,
+}
+
+
+// FuncType  ::= "void" | "int";
 #[derive(Debug)]
 pub enum FuncType {
     Int,
-    // Void,
-    // Double,
-    // Float,
-    // String,
+    Void,
 }
 
-// Block     ::= "{" Stmt "}";
+
+
+
+// ------------------------------ body ------------------------------------------
+
 // Block         ::= "{" {BlockItem} "}";
 #[derive(Debug)]
 pub struct Block {
@@ -82,10 +102,6 @@ pub enum Stmt {
     BreakKeyWord(),
     ContinueKeyWord(),
 }
-
-
-
-
 
 
 
@@ -225,11 +241,20 @@ pub enum MulExp {
     Modexp(Box<MulExp>, UnaryExp, String),
 }
 
-// UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
+// UnaryExp    ::= PrimaryExp
+//               | IDENT "(" [FuncRParams] ")"
+//               | UnaryOp UnaryExp;
 #[derive(Debug)]
 pub enum UnaryExp {
     Primaryexp(PrimaryExp),
     Unaryexp(UnaryOp, Box<UnaryExp>),
+    Funcall(String, Option<FuncRParams>),
+}
+
+// FuncRParams ::= Exp {"," Exp};
+#[derive(Debug)]
+pub struct FuncRParams {
+    pub params: Vec<Exp>,
 }
 
 // PrimaryExp    ::= "(" Exp ")" | LVal | Number;
