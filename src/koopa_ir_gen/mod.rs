@@ -34,7 +34,6 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
 
         // CompUnit ::= [CompUnit] FuncDef;
         TreePoint::CompUnit(node) => {
-
             fn insert_function(scope: &mut HashMap<String, i32>, func_def: &FuncDef) {
                 // insert the function definition.
                 println!("insert: {}\n", &func_def.ident);
@@ -47,31 +46,19 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
                     },
                 }
             }
-            let mut program = "".to_string();
-            match node {
-                CompUnit::Single(func_def) => {
-                    insert_function(&mut scope, &func_def);
-                    dfs(TreePoint::FuncDef(func_def), &scope, size)
-                },
-                CompUnit::Multiple(func_def, next) => {
-                    let ret_val = dfs(TreePoint::CompUnit(*next), &scope, size);
-                    
-                    insert_function(&mut scope, &func_def);
-                    let func_val = dfs(TreePoint::FuncDef(func_def), &scope, ret_val.size);
+            for func in node.funcs {
+                insert_function(&mut scope, &func);
+                let func_val = dfs(TreePoint::FuncDef(func), &scope, size);
 
-                    program.push_str(&ret_val.program);
-                    program.push_str(&func_val.program);
-
-
-                    return ExpRetType {
-                        size: func_val.size, 
-                        program, 
-                        exp_res_id: -1
-                    };
-                },
+                program.push_str(&func_val.program);
+                size = func_val.size;
             }
-            // let program = dfs(TreePoint::FuncDef(node.func_def), &scope, size);
-            // return program;
+
+            return ExpRetType {
+                size: size, 
+                program, 
+                exp_res_id: -1,
+            };
         },
         
         // FuncDef     ::= FuncType IDENT "(" [FuncFParams] ")" Block;
@@ -89,8 +76,8 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
                         // store @x, %x
                         // we only have i32, hhhh.
                         size += 1;
-                        load_params.push_str(&format!("    %var_{} = alloc i32\n", size));
-                        load_params.push_str(&format!("    store @{}, %var_{}\n", x.ident , size));
+                        load_params.push_str(&format!("    @var_{} = alloc i32\n", size));
+                        load_params.push_str(&format!("    store @{}, @var_{}\n", x.ident , size));
 
                         // add parameter to scope. And parameter is variable.
                         scope.insert(format!("{}", x.ident), size << 1);
@@ -125,7 +112,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             } else {
                 program.push_str(&format!("    ret\n"));
             }
-            program.push_str("}\n");
+            program.push_str("}\n\n\n");
 
             return ExpRetType {
                 size: body.size,
@@ -138,9 +125,10 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             let mut is_first = true;
             for x in node.params {
                 // maybe pointer in the future????
-                program.push_str(&format!("@{}: i32", x.ident));
                 if is_first {
-                    program.push_str(&format!(","));
+                    program.push_str(&format!("@{}: i32", x.ident));
+                } else {
+                    program.push_str(&format!(", @{}: i32", x.ident));
                 }
                 is_first = false;
             }

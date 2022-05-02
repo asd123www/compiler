@@ -131,7 +131,7 @@ impl ExpResult for UnaryExp {
                             if is_first {
                                 params_str.push_str(&format!("%var_{}", ret_val.exp_res_id));
                             } else {
-                                params_str.push_str(&format!(",%var_{}", ret_val.exp_res_id));
+                                params_str.push_str(&format!(", %var_{}", ret_val.exp_res_id));
                             }
                             is_first = false;
                         }
@@ -152,7 +152,7 @@ impl ExpResult for UnaryExp {
                     }
                 }
                 
-                program.push_str(&params_str);
+                program.push_str(&format!("    {}", &params_str));
                 return ExpRetType {
                     size: size,
                     program: program,

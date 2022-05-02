@@ -1,10 +1,7 @@
-int half(int x) {
-  return x / 2;
+int add(int a, int b) {
+  return a + b;
 }
 
-void f() {}
-
 int main() {
-  f();
-  return half(10);
+  return add(1, 2);
 }

@@ -20,8 +20,10 @@ match {
 
 // CompUnit    ::= [CompUnit] FuncDef
 pub CompUnit: CompUnit = {
-    <func_def: FuncDef> => CompUnit::Single(func_def),
-    <compunit: CompUnit> <func_def: FuncDef> => CompUnit::Multiple(func_def, Box::new(compunit)),
+    <func: FuncDef> <mut funcs: (<FuncDef>)*> => {
+        funcs.insert(0, func); // param is the first.
+        CompUnit {funcs}
+    },
 }
 
 // FuncDef     ::= FuncType IDENT "(" [FuncFParams] ")" Block;

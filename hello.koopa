@@ -1,55 +1,30 @@
-fun @main(): i32 {
+fun @add(@a: i32, @b: i32): i32 {
 
-%entry_2:
-    %var_3 = add 0, 0
-    br %var_3, %entry_61, %entry_62
+%entry_4:
+    @var_1 = alloc i32
+    store @a, @var_1
+    @var_2 = alloc i32
+    store @b, @var_2
+    %var_5 = load @var_1
+    %var_9 = load @var_2
+    %var_12 = add %var_5, %var_9
+    ret %var_12
 
-%entry_61:
-    %var_11 = add 0, 0
-    ret %var_11
-
-%entry_19:
-    jump %entry_63
-
-%entry_62:
-    jump %entry_58
-
-%entry_58:
-    %var_20 = add 0, 0
-    br %var_20, %entry_59, %entry_60
-
-%entry_59:
-    jump %entry_55
-
-%entry_55:
-    %var_28 = add 0, 0
-    br %var_28, %entry_56, %entry_57
-
-%entry_56:
-    %var_36 = add 0, 0
-    br %var_36, %entry_53, %entry_54
-
-%entry_53:
-    %var_44 = add 0, 0
-    ret %var_44
-
-%entry_52:
-    jump %entry_54
-
-%entry_54:
-    jump %entry_55
-
-%entry_57:
-    jump %entry_58
-
-%entry_60:
-    jump %entry_63
-
-%entry_63:
-    %var_64 = add 0, 1
-    %var_66 = sub 0, %var_64
-    ret %var_66
-
-%entry_73:
+%entry_17:
     ret 0
 }
+
+
+fun @main(): i32 {
+
+%entry_19:
+    %var_20 = add 0, 1
+    %var_28 = add 0, 2
+    %var_36 = call @add(%var_20, %var_28)
+    ret %var_36
+
+%entry_43:
+    ret 0
+}
+
+

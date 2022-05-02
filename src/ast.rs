@@ -2,10 +2,10 @@
 // ------------------------------ Function ------------------------------------------
 
 // CompUnit  ::= [CompUnit] FuncDef;
+// the original 
 #[derive(Debug)]
-pub enum CompUnit {
-    Single(FuncDef),
-    Multiple(FuncDef, Box<CompUnit>),
+pub struct CompUnit {
+    pub funcs: Vec<FuncDef>,
 }
 
 
