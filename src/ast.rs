@@ -46,7 +46,6 @@ pub enum BlockItem {
 pub enum Statement {
     Open(OpenStatement),
     Closed(ClosedStatement),
-    While(Exp, Box<Statement>),
 }
 
 
@@ -56,6 +55,7 @@ pub enum Statement {
 pub enum OpenStatement {
     If(Exp, Box<Statement>),
     Ifelse(Exp, ClosedStatement, Box<OpenStatement>),
+    While(Exp, Box<Statement>),
 }
 
 

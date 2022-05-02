@@ -42,19 +42,19 @@ BlockItem: BlockItem = {
 
 // statement: open_statement
 //          | closed_statement
-//          ｜ "while" "(" Exp ")" Stmt
 Statement: Statement = {
     <os :OpenStatement> => Statement::Open(os),
     <cs :ClosedStatement> => Statement::Closed(cs),
-    "while" "(" <exp: Exp> ")" <stmt: Statement>  => Statement::While(exp, Box::new(stmt)),
 }
 
 // open_statement: IF '(' expression ')' statement
 //               | IF '(' expression ')' closed_statement ELSE open_statement
+//               | "while" "(" Exp ")" Stmt
 OpenStatement: OpenStatement = {
     "if" "(" <exp: Exp> ")" <s:Statement> => OpenStatement::If(exp, Box::new(s)),
     "if" "(" <exp: Exp> ")" <cs:ClosedStatement> "else" <os: OpenStatement> => 
             OpenStatement::Ifelse(exp, cs, Box::new(os)),
+    "while" "(" <exp: Exp> ")" <stmt: Statement>  => OpenStatement::While(exp, Box::new(stmt)),
 }
 
 // closed_statement: non_if_statement
