@@ -8,11 +8,12 @@ use super::{TreePoint, ret_types::ExpRetType, dfs};
 
 
 
-// // statement: open_statement
-// //          | closed_statement
+// statement: open_statement
+//          | closed_statement
+//          | "while" "(" Exp ")" Stmt
 impl Statement {
     pub fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType {
-
+        let mut program = "".to_string();
         match self {
             Statement::Open(os) => {
                 os.eval(scope, size)
@@ -20,18 +21,43 @@ impl Statement {
             Statement::Closed(cs) => {
                 cs.eval(scope, size)
             },
+            Statement::While(exp, stmt) => {
+                let exp_val = exp.eval(scope, size);
+                let stmt_val = stmt.eval(scope, exp_val.size);
+                let size = stmt_val.size + 1;
+
+                // replace `break` and `continue`.
+                let real_body = str::replace(&stmt_val.program, "<replace_me_with_break>", &format!("jump %entry_{}", size + 2));
+                let real_body = str::replace(&real_body, "<replace_me_with_continue>", &format!("jump %entry_{}", size));
+
+                
+                // end last block and jump to condition.
+                program.push_str(&format!("    jump %entry_{}\n", size));
+
+                // condition label.
+                program.push_str(&format!("\n%entry_{}:\n", size));
+                program.push_str(&exp_val.program); // conditional jump.
+                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", exp_val.exp_res_id, size + 1, size + 2));
+
+                // body label.
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
+                program.push_str(&real_body);
+                program.push_str(&format!("    jump %entry_{}\n", size));
+
+
+                // after `while`.
+                program.push_str(&format!("\n%entry_{}:\n", size + 2));
+
+
+                return ExpRetType{size: size + 2, program, exp_res_id: 0};
+            },
         }
     }
 }
 
 
-// // open_statement: IF '(' expression ')' statement
-// //               | IF '(' expression ')' closed_statement ELSE open_statement
-// #[derive(Debug)]
-// pub enum OpenStatement {
-//     If(Exp, Box<Statement>),
-//     Ifelse(Exp, ClosedStatement, Box<OpenStatement>),
-// }
+// open_statement: IF '(' expression ')' statement
+//               | IF '(' expression ')' closed_statement ELSE open_statement
 impl OpenStatement {
     pub fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType {
         let size = size;
@@ -82,13 +108,8 @@ impl OpenStatement {
 
 
 
-// // closed_statement: non_if_statement
-// //                 | IF '(' expression ')' closed_statement ELSE closed_statement
-// #[derive(Debug)]
-// pub enum ClosedStatement {
-//     Stmt(Stmt),
-//     Ifelse(Exp, Box<ClosedStatement>, Box<ClosedStatement>),
-// }
+// closed_statement: non_if_statement
+//                 | IF '(' expression ')' closed_statement ELSE closed_statement
 impl ClosedStatement {
     pub fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType {
         let mut size = size;
@@ -174,6 +195,21 @@ impl Stmt {
             Stmt::ZeroExp() => {
                 ExpRetType {
                     size, program, exp_res_id: 0
+                }
+            }
+
+            Stmt::BreakKeyWord() => { // give `while` a hint, it'll replace it with `jump`.
+                program.push_str("    <replace_me_with_break>\n");
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
+                ExpRetType {
+                    size: size + 1, program, exp_res_id: 0
+                }
+            }
+            Stmt::ContinueKeyWord() => {
+                program.push_str("    <replace_me_with_continue>\n");
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
+                ExpRetType {
+                    size: size + 1, program, exp_res_id: 0
                 }
             }
         }

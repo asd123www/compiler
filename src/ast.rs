@@ -46,6 +46,7 @@ pub enum BlockItem {
 pub enum Statement {
     Open(OpenStatement),
     Closed(ClosedStatement),
+    While(Exp, Box<Statement>),
 }
 
 
@@ -78,6 +79,8 @@ pub enum Stmt {
     SingleExp(Exp),
     Block(Block),
     ZeroExp(),
+    BreakKeyWord(),
+    ContinueKeyWord(),
 }
 
 

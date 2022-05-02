@@ -1,5 +1,6 @@
 int main() {
-  if (0) return 1;
-  else return 2;
-  return 3;
+  if (0) return 0;
+  else while (0);
+
+  return -1;
 }

@@ -39,13 +39,14 @@ BlockItem: BlockItem = {
     <decl: Decl> => BlockItem::Decl(decl),
     <stmt: Statement> => BlockItem::Statement(stmt),
 }
-// "if" "(" Exp ")" Stmt ["else" Stmt]
 
 // statement: open_statement
 //          | closed_statement
+//          ｜ "while" "(" Exp ")" Stmt
 Statement: Statement = {
     <os :OpenStatement> => Statement::Open(os),
     <cs :ClosedStatement> => Statement::Closed(cs),
+    "while" "(" <exp: Exp> ")" <stmt: Statement>  => Statement::While(exp, Box::new(stmt)),
 }
 
 // open_statement: IF '(' expression ')' statement
@@ -69,16 +70,17 @@ ClosedStatement: ClosedStatement = {
 //        | [Exp] ";"
 //        | Block
 //        | "return" [Exp] ";";
+//        | "break" ";"
+//        | "continue" ";"
 Stmt: Stmt = {
     "return" <exp: Exp> ";" => Stmt::RetExp(exp),
     <lval: LVal> "=" <exp: Exp> ";" => Stmt::LvalExp(lval, exp),
     <exp: Exp> ";" => Stmt::SingleExp(exp),
     <block: Block> => Stmt::Block(block),
     ";" => Stmt::ZeroExp(),
+    "break" ";" => Stmt::BreakKeyWord(),
+    "continue" ";" => Stmt::ContinueKeyWord(),
 }
-
-
-
 
 
 

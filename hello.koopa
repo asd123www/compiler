@@ -1,27 +1,112 @@
 fun @main(): i32 {
 
 %entry_2:
-    %var_3 = add 0, 0
-    br %var_3, %entry_29, %entry_30
+    jump %entry_161
 
-%entry_29:
+%entry_161:
+    %var_3 = add 0, 1
+    br %var_3, %entry_162, %entry_163
+
+%entry_162:
     %var_11 = add 0, 1
-    ret %var_11
-
-%entry_19:
-    jump %entry_31
-
-%entry_30:
+    @var_19 = alloc i32
+    store %var_11, @var_19
     %var_20 = add 0, 2
-    ret %var_20
+    @var_28 = alloc i32
+    store %var_20, @var_28
+    %var_29 = load @var_19
+    %var_36 = add 0, 1
+    %var_41 = eq %var_29, %var_36
+    br %var_41, %entry_158, %entry_159
 
-%entry_28:
-    jump %entry_31
+%entry_158:
+    jump %entry_137
 
-%entry_31:
-    %var_32 = add 0, 3
-    ret %var_32
+%entry_137:
+    %var_44 = load @var_19
+    %var_49 = load @var_28
+    %var_53 = lt %var_44, %var_49
+    br %var_53, %entry_138, %entry_139
 
-%entry_40:
+%entry_138:
+    jump %entry_103
+
+%entry_103:
+    @condition_88 = alloc i32
+    store 0, @condition_88
+    %var_57 = load @var_19
+    %var_62 = load @var_28
+    %var_66 = lt %var_57, %var_62
+    br %var_66, %entry_89, %entry_88
+
+%entry_88:
+    %var_70 = load @var_28
+    %var_74 = add 0, 1
+    %var_77 = sub %var_70, %var_74
+    %var_81 = add 0, 0
+    %var_86 = eq %var_77, %var_81
+    br %var_86, %entry_89, %entry_90
+
+%entry_89:
+    store 1, @condition_88
+    jump %entry_90
+
+%entry_90:
+    %var_90 = load @condition_88
+    br %var_90, %entry_104, %entry_105
+
+%entry_104:
+    %var_91 = load @var_19
+    %var_95 = add 0, 1
+    %var_98 = add %var_91, %var_95
+    store %var_98, @var_19
+    jump %entry_103
+
+%entry_105:
+    %var_106 = add 0, 1
+    store %var_106, @var_28
+    %var_114 = load @var_19
+    %var_118 = add 0, 1
+    %var_121 = add %var_114, %var_118
+    store %var_121, @var_19
+    %var_126 = add 0, 3
+    br %var_126, %entry_135, %entry_136
+
+%entry_135:
+    jump %entry_137
+
+%entry_134:
+    jump %entry_136
+
+%entry_136:
+    jump %entry_137
+
+%entry_139:
+    jump %entry_160
+
+%entry_159:
+    %var_140 = load @var_28
+    %var_147 = add 0, 6
+    %var_152 = eq %var_140, %var_147
+    br %var_152, %entry_156, %entry_157
+
+%entry_156:
+    jump %entry_163
+
+%entry_155:
+    jump %entry_157
+
+%entry_157:
+    jump %entry_160
+
+%entry_160:
+    jump %entry_161
+
+%entry_163:
+    %var_164 = add 0, 1
+    %var_166 = sub 0, %var_164
+    ret %var_166
+
+%entry_173:
     ret 0
 }
