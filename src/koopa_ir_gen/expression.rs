@@ -291,6 +291,7 @@ impl ExpResult for EqExp {
     }
 }
 
+// we need to add short-circuit evaluation.
 // LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 impl ExpResult for LAndExp {
     fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
@@ -310,13 +311,28 @@ impl ExpResult for LAndExp {
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
-                program.push_str(&ret_val1.program);
-                program.push_str(&ret_val2.program);
+                // init condition to zero.
+                program.push_str(&format!("    @condition_{} = alloc i32\n", size));
+                program.push_str(&format!("    store 0, @condition_{}\n", size));
+
+                // first evaluate the left.
+                program.push_str(&ret_val1.program); // jump according to ret_val.
+                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val1.exp_res_id, size, size + 2));
                 
-                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
-                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
-                program.push_str(&format!("    %var_{} = and %var_{}, %var_{}\n", size + 2, size, size + 1));
-    
+                // if first is true, then jump to here.
+                program.push_str(&format!("\n%entry_{}:\n", size));
+                // then evaluate the left.
+                program.push_str(&ret_val2.program); // jump according to ret_val.
+                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val2.exp_res_id, size + 1, size + 2));
+                
+                // both is true.
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
+                program.push_str(&format!("    store 1, @condition_{}\n", size));
+                program.push_str(&format!("    jump %entry_{}\n", size + 2));
+
+                program.push_str(&format!("\n%entry_{}:\n", size + 2));
+                program.push_str(&format!("    %var_{} = load @condition_{}\n", size + 2, size));
+
                 return ExpRetType {
                     size: size + 2,
                     program: program,
@@ -346,12 +362,35 @@ impl ExpResult for LOrExp {
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
-                program.push_str(&ret_val1.program);
-                program.push_str(&ret_val2.program);
+
+                // init condition to zero.
+                program.push_str(&format!("    @condition_{} = alloc i32\n", size));
+                program.push_str(&format!("    store 0, @condition_{}\n", size));
+
+                // first evaluate the left.
+                program.push_str(&ret_val1.program); // jump according to ret_val.
+                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val1.exp_res_id, size + 1, size));
+                
+                // if first is false, then jump to here.
+                program.push_str(&format!("\n%entry_{}:\n", size));
+                // then evaluate the left.
+                program.push_str(&ret_val2.program); // jump according to ret_val.
+                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val2.exp_res_id, size + 1, size + 2));
+                
+                // exist one condition is true.
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
+                program.push_str(&format!("    store 1, @condition_{}\n", size));
+                program.push_str(&format!("    jump %entry_{}\n", size + 2));
+
+                program.push_str(&format!("\n%entry_{}:\n", size + 2));
+                program.push_str(&format!("    %var_{} = load @condition_{}\n", size + 2, size));
+
+                // program.push_str(&ret_val1.program);
+                // program.push_str(&ret_val2.program);
     
-                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
-                program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
-                program.push_str(&format!("    %var_{} = or %var_{}, %var_{}\n", size + 2, size, size + 1));
+                // program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
+                // program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
+                // program.push_str(&format!("    %var_{} = or %var_{}, %var_{}\n", size + 2, size, size + 1));
 
                 return ExpRetType {
                     size: size + 2,

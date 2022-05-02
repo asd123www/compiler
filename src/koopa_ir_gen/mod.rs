@@ -35,6 +35,7 @@ impl Stmt {
                 let instrs = exp.eval(scope, size);
                 program.push_str(&instrs.program);
                 program.push_str(&format!("    ret %var_{}\n", instrs.exp_res_id));
+                program.push_str(&format!("\n%entry_{}:\n", instrs.size + 1));
 
                 return ExpRetType {
                     size: instrs.size + 1,
@@ -103,6 +104,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             program.push_str(&format!("\n%entry_{}:\n", ret_val.size + 1));
             let body = dfs(TreePoint::Block(&node.block), &scope, ret_val.size + 1);
             program.push_str(&body.program);
+            program.push_str(&format!("    ret 0\n"));
 
             program.push_str("}\n");
 

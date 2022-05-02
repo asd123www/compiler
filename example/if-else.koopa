@@ -1,0 +1,16 @@
+fun @main(): i32 {
+%entry_2:
+    @a = alloc i32
+    store 0, @a
+    jump %entry_3
+    
+%entry_3:
+    %var_4 = load @a
+    %var_5 = add 3, %var_4
+    store %var_5, @a
+    jump %entry_18
+
+%entry_18:
+    %var_6 = load @a
+    ret %var_6
+}
