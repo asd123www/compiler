@@ -16,7 +16,7 @@ impl DeclResult for BlockItem {
     fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
         // BlockItem ::= Decl | Stmt;
         match self {
-            BlockItem::Stmt(stmt) => {
+            BlockItem::Statement(stmt) => {
                 let statement = stmt.eval(&scope, size);
                 return DeclRetType {
                     size: statement.size,
@@ -26,11 +26,7 @@ impl DeclResult for BlockItem {
             },
             BlockItem::Decl(decl) => {
                 let decl_ret_val = decl.eval(scope, size);
-                return DeclRetType {
-                    size: decl_ret_val.size,
-                    program: decl_ret_val.program,
-                    flag: REGULAR_STATE,
-                };
+                return decl_ret_val;
             }
         }
     }
@@ -66,7 +62,7 @@ impl DeclResult for ConstDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program, flag: REGULAR_STATE};
+        return DeclRetType{size, program, flag: 0};
     }
 }
 
@@ -83,7 +79,7 @@ impl DeclResult for VarDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program, flag: REGULAR_STATE};
+        return DeclRetType{size, program, flag: 0};
     }
 }
 
@@ -97,7 +93,7 @@ impl DeclResult for ConstDef {
         // the constant's value is the expression.
         scope.insert(format!("{}", self.ident), (ret_val.exp_res_id) << 1 | 1);
 
-        return DeclRetType {size, program: ret_val.program, flag: REGULAR_STATE};
+        return DeclRetType {size, program: ret_val.program, flag: 0};
     }
 }
 
@@ -112,7 +108,7 @@ impl DeclResult for VarDef {
                 // @x = alloc i32
                 program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
 
-                return DeclRetType {size: size + 1, program, flag: REGULAR_STATE};
+                return DeclRetType {size: size + 1, program, flag: 0};
             },
             VarDef::Identinitval(ident, initval) => {
                 let ret_val = initval.eval(scope, size);
@@ -126,7 +122,7 @@ impl DeclResult for VarDef {
                 // assignment: store %1, @x
                 program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, size + 1)); // currently only i32.
 
-                return DeclRetType {size: size + 1, program, flag: REGULAR_STATE};
+                return DeclRetType {size: size + 1, program, flag: 0};
             },
         }
     }

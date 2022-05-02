@@ -2,67 +2,13 @@
 mod ret_types;
 mod expression;
 mod declare;
+mod statement;
 
 use ret_types::*;
 use crate::ast::*;
 use std::collections::HashMap;
-use crate::koopa_ir_gen::expression::ExpResult;
 use crate::koopa_ir_gen::declare::DeclResult;
 
-
-impl Stmt {
-    fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType {
-        // Stmt ::= LVal "=" Exp ";"| "return" Exp ";";
-        let mut size = size;
-        let mut program = "".to_string();
-        match self {
-            Stmt::LvalExp(lval, exp) => {
-                // query the scope to find variable id, and change it.
-                let id = scope.get(&lval.ident).unwrap();
-                let ret_val = exp.eval(scope, size);
-                size = ret_val.size;
-                program.push_str(&ret_val.program);
-                // store %1, @x
-                program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, id >> 1));
-
-                return ExpRetType {
-                    size: size,
-                    program: program,
-                    exp_res_id: REGULAR_STATE,
-                }
-            },
-            Stmt::RetExp(exp) => {
-                let instrs = exp.eval(scope, size);
-                program.push_str(&instrs.program);
-                program.push_str(&format!("    ret %var_{}\n", instrs.exp_res_id));
-                program.push_str(&format!("\n%entry_{}:\n", instrs.size + 1));
-
-                return ExpRetType {
-                    size: instrs.size + 1,
-                    program: program,
-                    exp_res_id: RETURN_STATE, // return stmt => -2;
-                }
-            },
-
-            Stmt::SingleExp(exp) => {
-                let ret_val = exp.eval(scope, size);
-                ret_val
-            },
-
-            // fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
-            Stmt::Block(block) => {
-                let ret_val = dfs(TreePoint::Block(block), scope, size);
-                ret_val
-            },
-
-            Stmt::ZeroExp() => {
-                ExpRetType {
-                    size, program, exp_res_id: REGULAR_STATE
-                }
-            }
-        }
-    }
-}
 
 
 enum TreePoint<'a> {

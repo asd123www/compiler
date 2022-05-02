@@ -36,7 +36,34 @@ pub struct Block {
 #[derive(Debug)]
 pub enum BlockItem {
     Decl(Decl),
+    Statement(Statement),
+}
+
+
+// statement: open_statement
+//          | closed_statement
+#[derive(Debug)]
+pub enum Statement {
+    Open(OpenStatement),
+    Closed(ClosedStatement),
+}
+
+
+// open_statement: IF '(' expression ')' statement
+//               | IF '(' expression ')' closed_statement ELSE open_statement
+#[derive(Debug)]
+pub enum OpenStatement {
+    If(Exp, Box<Statement>),
+    Ifelse(Exp, ClosedStatement, Box<OpenStatement>),
+}
+
+
+// closed_statement: non_if_statement
+//                 | IF '(' expression ')' closed_statement ELSE closed_statement
+#[derive(Debug)]
+pub enum ClosedStatement {
     Stmt(Stmt),
+    Ifelse(Exp, Box<ClosedStatement>, Box<ClosedStatement>),
 }
 
 
@@ -52,6 +79,8 @@ pub enum Stmt {
     Block(Block),
     ZeroExp(),
 }
+
+
 
 
 

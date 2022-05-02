@@ -1,47 +1,27 @@
 fun @main(): i32 {
 
 %entry_2:
-    @condition_55 = alloc i32
-    store 0, @condition_55
-    %var_3 = add 0, 1
-    %var_7 = add 0, 2
-    @condition_26 = alloc i32
-    store 0, @condition_26
-    %var_10 = add 0, 3
-    %var_12 = eq 0, %var_10
-    br %var_12, %entry_27, %entry_26
+    %var_3 = add 0, 0
+    br %var_3, %entry_29, %entry_30
 
-%entry_26:
-    %var_19 = add 0, 4
-    br %var_19, %entry_27, %entry_28
+%entry_29:
+    %var_11 = add 0, 1
+    ret %var_11
 
-%entry_27:
-    store 1, @condition_26
-    jump %entry_28
+%entry_19:
+    jump %entry_31
+
+%entry_30:
+    %var_20 = add 0, 2
+    ret %var_20
 
 %entry_28:
-    %var_28 = load @condition_26
-    %var_31 = mul %var_7, %var_28
-    %var_32 = add %var_3, %var_31
-    %var_34 = add 0, 5
-    %var_38 = lt %var_32, %var_34
-    %var_41 = add 0, 6
-    %var_46 = ne %var_38, %var_41
-    br %var_46, %entry_55, %entry_57
+    jump %entry_31
 
-%entry_55:
-    %var_48 = add 0, 7
-    %var_50 = sub 0, %var_48
-    br %var_50, %entry_56, %entry_57
+%entry_31:
+    %var_32 = add 0, 3
+    ret %var_32
 
-%entry_56:
-    store 1, @condition_55
-    jump %entry_57
-
-%entry_57:
-    %var_57 = load @condition_55
-    ret %var_57
-
-%entry_59:
+%entry_40:
     ret 0
 }

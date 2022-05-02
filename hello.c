@@ -1,3 +1,5 @@
 int main() {
-  return 1 + 2 * (!3 || 4) < 5 != 6 && -7;
+  if (0) return 1;
+  else return 2;
+  return 3;
 }
