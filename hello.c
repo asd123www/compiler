@@ -1,7 +1,10 @@
-int add(int a, int b) {
-  return a + b;
-}
-
 int main() {
-  return add(1, 2);
+  int x = getint();
+  int y = getint();
+  putint(x + y);
+  int c = getch();
+  putch(c);
+  putch(33);
+  putch(10);
+  return 0;
 }

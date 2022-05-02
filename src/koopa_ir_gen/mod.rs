@@ -175,7 +175,29 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
 
 pub fn generator(start: CompUnit) -> String {
     let size = 0;
-    let scope: HashMap<String, i32> = HashMap::new();
+    let mut program = "
+decl @getint(): i32
+decl @getch(): i32
+decl @getarray(*i32): i32
+decl @putint(i32)
+decl @putch(i32)
+decl @putarray(i32, *i32)
+decl @starttime()
+decl @stoptime()\n\n\n\n".to_string();
+    let mut scope: HashMap<String, i32> = HashMap::new();
 
-    return dfs(TreePoint::CompUnit(start), &scope, size).program;
+    // add std::functions to scope.
+    scope.insert("getint_function".to_string(), 0);
+    scope.insert("getch_function".to_string(), 0);
+    scope.insert("getarray_function".to_string(), 0);
+    scope.insert("putint_function".to_string(), 1);
+    scope.insert("putch_function".to_string(), 1);
+    scope.insert("putarray_function".to_string(), 1);
+    scope.insert("starttime_function".to_string(), 1);
+    scope.insert("stoptime_function".to_string(), 1);
+
+    let result = dfs(TreePoint::CompUnit(start), &scope, size);
+    program.push_str(&result.program);
+
+    return program;
 }
