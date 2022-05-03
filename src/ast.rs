@@ -31,13 +31,13 @@ pub struct FuncFParams {
     pub params: Vec<FuncFParam>,
 }
 
-// FuncFParam  ::= BType IDENT;
+// FuncFParam ::= BType IDENT ["[" "]" {"[" ConstExp "]"}]
 #[derive(Debug)]
-pub struct FuncFParam {
+pub enum FuncFParam {
     // pub btype: BType,
-    pub ident: String,
+    Integer(String),
+    Array(String, Vec<ConstExp>),
 }
-
 
 // FuncType  ::= "void" | "int";
 #[derive(Debug)]
@@ -117,13 +117,14 @@ pub enum Stmt {
 
 // ------------------------------ Variable ------------------------------------------
 
-// LVal          ::= IDENT;
+// LVal ::= IDENT {"[" Exp "]"}
 #[derive(Debug)]
 pub struct LVal {
     pub ident: String,
+    pub exps: Vec<Exp>,
 }
 
-// Decl          ::= ConstDecl | VarDecl;
+// Decl          ::= ConstDecl | VarDecl
 #[derive(Debug)]
 pub enum Decl {
     Constdecl(ConstDecl),
@@ -153,29 +154,37 @@ pub struct VarDecl {
 //     // String,
 // }
 
-// ConstDef      ::= IDENT "=" ConstInitVal;
+// ConstDef      ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal;
 #[derive(Debug)]
 pub struct ConstDef {
     pub ident: String,
+    pub dims: Vec<ConstExp>,
     pub constinitval: ConstInitVal,
 }
-// VarDef        ::= IDENT | IDENT "=" InitVal;
+
+// VarDef ::= IDENT {"[" ConstExp "]"}
+//      | IDENT {"[" ConstExp "]"} "=" InitVal;
 #[derive(Debug)]
 pub enum VarDef {
-    Ident(String),
-    Identinitval(String, InitVal),
+    Ident(String, Vec<ConstExp>),
+    Identinitval(String, Vec<ConstExp>, InitVal),
 }
 
-// ConstInitVal  ::= ConstExp;
+// ConstInitVal  ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}"
 #[derive(Debug)]
-pub struct ConstInitVal {
-    pub constexp: ConstExp,
+pub enum ConstInitVal {
+    SingleExp(ConstExp),
+    ZeroInit(),
+    MultiExp(Vec<ConstInitVal>),
 }
 
-// InitVal       ::= Exp;
+// InitVal ::= Exp 
+//           | "{" [InitVal {"," InitVal}] "}"
 #[derive(Debug)]
-pub struct InitVal {
-    pub exp: Exp,
+pub enum InitVal {
+    SingleExp(Exp),
+    ZeroInit(),
+    MultiExp(Vec<InitVal>),
 }
 
 

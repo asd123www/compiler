@@ -63,9 +63,10 @@ FuncFParams: FuncFParams = {
     },
 }
 
-// FuncFParam  ::= BType IDENT;
+// FuncFParam ::= BType IDENT ["[" "]" {"[" ConstExp "]"}]
 FuncFParam: FuncFParam = {
-    "int" <ident: Ident> => FuncFParam{ident},
+    "int" <ident: Ident> => FuncFParam::Integer{ident},
+    "int" <ident: Ident> "[" "]" <mut dims: ("[" <ConstExp> "]")*> => FuncFParam::Array{ident, dims},
 }
 
 
@@ -134,9 +135,9 @@ Stmt: Stmt = {
 
 // ------------------------------ Variable ------------------------------------------
 
-// LVal          ::= IDENT;
+// LVal ::= IDENT {"[" Exp "]"}
 LVal: LVal = {
-    <ident: Ident> => LVal {ident}, 
+    <ident: Ident> <mut exps: ("[" <Exp> "]")*> => LVal {ident, exps}, 
 }
 
 // Decl          ::= ConstDecl | VarDecl;
@@ -164,28 +165,40 @@ VarDecl: VarDecl = {
 // // BType         ::= "int";
 // BType: BType = "int" => BType::Int;
 
-// ConstDef      ::= IDENT "=" ConstInitVal;
+// ConstDef      ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal;
 ConstDef: ConstDef = {
-    <ident: Ident> "=" <constinitval: ConstInitVal> => ConstDef{ident, constinitval},
+    <ident: Ident>  <mut dims: ("[" <ConstExp> "]")*>  "=" <constinitval: ConstInitVal> => 
+            ConstDef{ident, dims, constinitval},
 }
-// VarDef        ::= IDENT | IDENT "=" InitVal;
+
+// VarDef ::= IDENT {"[" ConstExp "]"}
+//      | IDENT {"[" ConstExp "]"} "=" InitVal;
 VarDef: VarDef = {
-    <ident: Ident> => VarDef::Ident(ident),
-    <ident: Ident> "=" <initval: InitVal> => VarDef::Identinitval(ident, initval),
+    <ident: Ident> <mut dims: ("[" <ConstExp> "]")*> => VarDef::Ident(ident, dims),
+    <ident: Ident> <mut dims: ("[" <ConstExp> "]")*> "=" <initval: InitVal> => VarDef::Identinitval(ident, dims, initval),
 }
 
 
-// ConstInitVal  ::= ConstExp;
+// ConstInitVal  ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}"
 ConstInitVal: ConstInitVal = {
-    <constexp: ConstExp> => ConstInitVal{constexp},
+    <constexp: ConstExp> => ConstInitVal::SingleExp(constexp),
+    "{" "}" => ConstInitVal::ZeroInit(),
+    "{" <fir: ConstInitVal> <mut vars: ("," <ConstInitVal>)*> "}" => {
+        vars.insert(0, fir);
+        ConstInitVal::MultiExp(vars)
+    }
 }
 
-// InitVal       ::= Exp;
+// InitVal ::= Exp 
+//           | "{" [InitVal {"," InitVal}] "}"
 InitVal: InitVal = {
-    <exp: Exp> => InitVal{exp},
+    <exp: Exp> => InitVal::SingleExp(exp),
+    "{" "}" => InitVal::ZeroInit(),
+    "{" <fir: InitVal> <mut vars: ("," <InitVal>)*> "}" => {
+        vars.insert(0, fir);
+        InitVal::MultiExp(vars)
+    }
 }
-
-
 
 
 
