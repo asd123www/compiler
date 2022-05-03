@@ -7,6 +7,7 @@ pub struct ExpRetType {
     pub size: i32,
     pub program: String,
     pub exp_res_id: i32,
+    pub const_value: i32,
 }
 
 
@@ -14,4 +15,10 @@ pub struct DeclRetType {
     pub size: i32,
     pub program: String,
     pub flag: i32,
+}
+
+pub struct BodyRetType {
+    pub size: i32,
+    pub program: String,
+    pub exp_res_id: i32,
 }

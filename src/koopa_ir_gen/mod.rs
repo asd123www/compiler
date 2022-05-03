@@ -24,7 +24,7 @@ enum TreePoint<'a> {
 
 // tranverse the syntax tree to translate.
 // return (size, Program), size for unique identify of the node.
-fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
+fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> BodyRetType {
     // consider the indent!
     let mut size = size;
     let mut program = String::from("");
@@ -54,7 +54,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
                 size = func_val.size;
             }
 
-            return ExpRetType {
+            return BodyRetType {
                 size: size, 
                 program, 
                 exp_res_id: -1,
@@ -114,7 +114,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             }
             program.push_str("}\n\n\n");
 
-            return ExpRetType {
+            return BodyRetType {
                 size: body.size,
                 program: program,
                 exp_res_id: -1,
@@ -133,7 +133,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
                 is_first = false;
             }
 
-            return ExpRetType {
+            return BodyRetType {
                 size: size,
                 program: program,
                 exp_res_id: -1,
@@ -142,12 +142,12 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
 
         TreePoint::FuncType(node) => {
             match node {
-                FuncType::Int => ExpRetType {
+                FuncType::Int => BodyRetType {
                     size: size + 1,
                     program: ": i32".to_string(),
                     exp_res_id: -1,
                 },
-                FuncType::Void => ExpRetType {
+                FuncType::Void => BodyRetType {
                     size: size + 1,
                     program: "".to_string(),
                     exp_res_id: -2,
@@ -163,7 +163,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
                 size = block.size;
                 program.push_str(&block.program);
             }
-            return ExpRetType {
+            return BodyRetType {
                 size: size,
                 program: program,
                 exp_res_id: -1,
@@ -183,7 +183,8 @@ decl @putint(i32)
 decl @putch(i32)
 decl @putarray(i32, *i32)
 decl @starttime()
-decl @stoptime()\n\n\n\n".to_string();
+decl @stoptime()\n\n\n\n
+global @var = alloc i32, 12\n\n".to_string();
     let mut scope: HashMap<String, i32> = HashMap::new();
 
     // add std::functions to scope.

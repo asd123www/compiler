@@ -64,6 +64,7 @@ impl ExpResult for PrimaryExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             PrimaryExp::Num(num) => {
@@ -73,16 +74,18 @@ impl ExpResult for PrimaryExp {
                     size: size + 1,
                     program: program,
                     exp_res_id: size + 1,
+                    const_value: *num,
                 };
             }
             PrimaryExp::Lval(lval) => {
                 let var = scope.get(&format!("{}", lval.ident)).unwrap();
 
-                if (var & 1) == 1 {
+                if (var & 1) == 1 { // constant variable.
                     return ExpRetType {
                         size: size,
                         program: program,
                         exp_res_id: var >> 1,
+                        const_value: var >> 1,
                     };
                 }
 
@@ -92,6 +95,7 @@ impl ExpResult for PrimaryExp {
                     size: size + 1,
                     program: program,
                     exp_res_id: size + 1,
+                    const_value: -1,
                 };
             }
         }
@@ -113,6 +117,7 @@ impl ExpResult for UnaryExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             UnaryExp::Funcall(ident, params) => {
@@ -149,6 +154,7 @@ impl ExpResult for UnaryExp {
                         size: size + 1,
                         program: program,
                         exp_res_id: size + 1,
+                        const_value: -1,
                     }
                 }
                 
@@ -157,6 +163,7 @@ impl ExpResult for UnaryExp {
                     size: size,
                     program: program,
                     exp_res_id: -1,
+                    const_value: -1,
                 }
             },
             UnaryExp::Unaryexp(unaryop, unaryexp) => {
@@ -168,6 +175,7 @@ impl ExpResult for UnaryExp {
                             size: ret_val.size + 1,
                             program: ret_val.program,
                             exp_res_id: ret_val.exp_res_id,
+                            const_value: ret_val.const_value,
                         };
                     },
                     UnaryOp::Sub => {
@@ -179,6 +187,7 @@ impl ExpResult for UnaryExp {
                             size: size,
                             program: program,
                             exp_res_id: size,
+                            const_value: -ret_val.const_value,
                         };
                     },
                     UnaryOp::Not => {
@@ -190,6 +199,7 @@ impl ExpResult for UnaryExp {
                             size: size,
                             program: program,
                             exp_res_id: size,
+                            const_value: !ret_val.const_value,
                         };
                     },
                 }
@@ -210,6 +220,7 @@ impl ExpResult for MulExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             MulExp::Mulexp(mulexp, unaryexp, op) |
@@ -228,6 +239,15 @@ impl ExpResult for MulExp {
                     size: size,
                     program: program,
                     exp_res_id: size,
+                    const_value: {
+                        if op == "mul" {
+                            ret_val1.const_value * ret_val2.const_value
+                        } else if op == "div" {
+                            ret_val1.const_value / ret_val2.const_value
+                        } else { // "mod"
+                            ret_val1.const_value % ret_val2.const_value
+                        }
+                    }
                 };
             },
         }
@@ -245,6 +265,7 @@ impl ExpResult for AddExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             AddExp::Addexp(addexp, mulexp, op) |
@@ -262,6 +283,13 @@ impl ExpResult for AddExp {
                     size: size,
                     program: program,
                     exp_res_id: size,
+                    const_value: {
+                        if op == "add" {
+                            ret_val1.const_value + ret_val2.const_value
+                        } else { // "sub"
+                            ret_val1.const_value - ret_val2.const_value
+                        }
+                    }
                 };
             },
         }
@@ -279,6 +307,7 @@ impl ExpResult for RelExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             RelExp::Ltexp(relexp, addexp, op) |
@@ -298,6 +327,17 @@ impl ExpResult for RelExp {
                     size: size,
                     program: program,
                     exp_res_id: size,
+                    const_value: {
+                        if op == "lt" {
+                            (ret_val1.const_value < ret_val2.const_value) as i32
+                        } else if op == "gt" {
+                            (ret_val1.const_value > ret_val2.const_value) as i32
+                        } else if op == "le" {
+                            (ret_val1.const_value <= ret_val2.const_value) as i32
+                        } else { // "ge"
+                            (ret_val1.const_value >= ret_val2.const_value) as i32
+                        }
+                    },
                 };
             }
         }
@@ -315,6 +355,7 @@ impl ExpResult for EqExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             EqExp::Eqexp(eqexp, relexp, op) |
@@ -332,6 +373,13 @@ impl ExpResult for EqExp {
                     size: size,
                     program: program,
                     exp_res_id: size,
+                    const_value: {
+                        if op == "eq" {
+                            (ret_val1.const_value == ret_val2.const_value) as i32
+                        } else { // "ne"
+                            (ret_val1.const_value != ret_val2.const_value) as i32
+                        }
+                    }
                 };
             },
         }
@@ -350,6 +398,7 @@ impl ExpResult for LAndExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             LAndExp::Andexp(landexp, eqexp) => {
@@ -384,6 +433,9 @@ impl ExpResult for LAndExp {
                     size: size + 2,
                     program: program,
                     exp_res_id: size + 2,
+                    const_value: { // do we really need it?
+                        (ret_val1.const_value != 0 && ret_val2.const_value != 0) as i32
+                    }
                 };
             },
         }
@@ -401,6 +453,7 @@ impl ExpResult for LOrExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
+                    const_value: ret_val.const_value,
                 };
             },
             LOrExp::Orexp(lorexp, landexp) => {
@@ -443,6 +496,9 @@ impl ExpResult for LOrExp {
                     size: size + 2,
                     program: program,
                     exp_res_id: size + 2,
+                    const_value: {
+                        (ret_val1.const_value != 0 || ret_val2.const_value != 0) as i32
+                    }
                 };
             },
         }

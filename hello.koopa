@@ -10,6 +10,9 @@ decl @stoptime()
 
 
 
+
+global @var = alloc i32, 12
+
 fun @main(): i32 {
 
 %entry_2:

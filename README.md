@@ -10,6 +10,8 @@ Calculate a value no matter whether it's constant or not, make sure arithmetic i
 
 Then at the specific constant point the value is there.
 
+Last bit is `1` indicate it's constant, `0` variable whose value is not defined when compiling.
+
 ### For if-else:
 see `example/if-else.koopa`, just alloc space for that result.
 
@@ -23,4 +25,11 @@ The original grammar is shit, change to vector.
 
 
 ### Function
-好像这个return value有点恶心啊.
+Store function info also in scope.
+
+### Global Declaration
+```
+Initializer ::= INT | "undef" | Aggregate | "zeroinit";
+```
+
+Therefore I assume it's value is fixed, not in run-time.

@@ -47,7 +47,7 @@ impl OpenStatement {
 
                 program.push_str(&format!("\n%entry_{}:\n", size + 1)); // after.
 
-                return ExpRetType{size: size + 1, program, exp_res_id: 0};
+                return ExpRetType{size: size + 1, program, exp_res_id: 0, const_value: 0,};
             },
             OpenStatement::Ifelse(exp, cs, os) => {
                 let exp_val = exp.eval(scope, size);
@@ -59,17 +59,20 @@ impl OpenStatement {
                 program.push_str(&exp_val.program);
                 program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", exp_val.exp_res_id, size, size + 1));
 
-                program.push_str(&format!("\n%entry_{}:\n", size)); // first part.
+                // first part.
+                program.push_str(&format!("\n%entry_{}:\n", size));
                 program.push_str(&cs_val.program);
                 program.push_str(&format!("    jump %entry_{}\n", size + 2));
-
-                program.push_str(&format!("\n%entry_{}:\n", size + 1)); // second part.
+                
+                // second part.
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
                 program.push_str(&os_val.program);
                 program.push_str(&format!("    jump %entry_{}\n", size + 2));
+                
+                // after.
+                program.push_str(&format!("\n%entry_{}:\n", size + 2));
 
-                program.push_str(&format!("\n%entry_{}:\n", size + 2)); // after.
-
-                return ExpRetType{size: size + 2, program, exp_res_id: 0};
+                return ExpRetType{size: size + 2, program, exp_res_id: 0, const_value: 0,};
             },
             OpenStatement::While(exp, stmt) => {
                 let exp_val = exp.eval(scope, size);
@@ -99,7 +102,7 @@ impl OpenStatement {
                 program.push_str(&format!("\n%entry_{}:\n", size + 2));
 
 
-                return ExpRetType{size: size + 2, program, exp_res_id: 0};
+                return ExpRetType{size: size + 2, program, exp_res_id: 0, const_value: 0,};
             },
         }
     }
@@ -137,7 +140,7 @@ impl ClosedStatement {
 
                 program.push_str(&format!("\n%entry_{}:\n", size + 2)); // after.
 
-                return ExpRetType{size: size + 2, program, exp_res_id: 0};
+                return ExpRetType{size: size + 2, program, exp_res_id: 0, const_value: 0,};
             },
         }
     }
@@ -164,6 +167,7 @@ impl Stmt {
                     size: size,
                     program: program,
                     exp_res_id: 0,
+                    const_value: 0,
                 }
             },
             Stmt::RetExp(exp) => {
@@ -176,6 +180,7 @@ impl Stmt {
                     size: instrs.size + 1,
                     program: program,
                     exp_res_id: 0, // return stmt => -2;
+                    const_value: 0,
                 }
             },
 
@@ -187,12 +192,19 @@ impl Stmt {
             // fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> ExpRetType {
             Stmt::Block(block) => {
                 let ret_val = dfs(TreePoint::Block(block), &scope, size);
-                ret_val
+
+                return ExpRetType {
+                    size: ret_val.size,
+                    program: ret_val.program,
+                    exp_res_id: ret_val.exp_res_id, // return stmt => -2;
+                    const_value: 0,
+                };
             },
 
             Stmt::ZeroExp() => {
                 ExpRetType {
-                    size, program, exp_res_id: 0
+                    size, program, exp_res_id: 0, 
+                    const_value: 0,
                 }
             }
 
@@ -200,14 +212,18 @@ impl Stmt {
                 program.push_str("    <replace_me_with_break>\n");
                 program.push_str(&format!("\n%entry_{}:\n", size + 1));
                 ExpRetType {
-                    size: size + 1, program, exp_res_id: 0
+                    size: size + 1, program, exp_res_id: 0, 
+                    const_value: 0,
                 }
             }
             Stmt::ContinueKeyWord() => {
                 program.push_str("    <replace_me_with_continue>\n");
                 program.push_str(&format!("\n%entry_{}:\n", size + 1));
                 ExpRetType {
-                    size: size + 1, program, exp_res_id: 0
+                    size: size + 1, 
+                    program, 
+                    exp_res_id: 0,
+                    const_value: 0,
                 }
             }
         }

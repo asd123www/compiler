@@ -54,9 +54,6 @@ impl DeclResult for ConstDecl {
         let mut size = size;
         let mut program = "".to_string();
 
-        // let type_str = match self.btype {
-        //     _ => "int",
-        // };
         for def in &self.constdefs {
             let ret_val = def.eval(scope, size);
             program.push_str(&ret_val.program);
