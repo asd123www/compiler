@@ -1,11 +1,17 @@
 
 // ------------------------------ Function ------------------------------------------
 
-// CompUnit  ::= [CompUnit] FuncDef;
+// CompUnit  ::= [CompUnit] DeclFuncPair;
 // the original 
 #[derive(Debug)]
 pub struct CompUnit {
-    pub funcs: Vec<FuncDef>,
+    pub funcs: Vec<DeclFuncPair>,
+}
+
+#[derive(Debug)]
+pub enum DeclFuncPair {
+    Decl(Decl),
+    Func(FuncDef),
 }
 
 
@@ -13,7 +19,7 @@ pub struct CompUnit {
 // FuncDef   ::= FuncType IDENT "(" [FuncFParams] ")" Block;
 #[derive(Debug)]
 pub struct FuncDef {
-    pub func_type: FuncType,
+    pub func_type: i32,
     pub ident: String,
     pub block: Block,
     pub params: Option<FuncFParams>,
@@ -28,7 +34,7 @@ pub struct FuncFParams {
 // FuncFParam  ::= BType IDENT;
 #[derive(Debug)]
 pub struct FuncFParam {
-    pub btype: BType,
+    // pub btype: BType,
     pub ident: String,
 }
 
@@ -127,25 +133,25 @@ pub enum Decl {
 // ConstDecl     ::= "const" BType ConstDef {"," ConstDef} ";";
 #[derive(Debug)]
 pub struct ConstDecl {
-    pub btype: BType,
+    // pub btype: BType,
     pub constdefs: Vec<ConstDef>,
 }
 // VarDecl       ::= BType VarDef {"," VarDef} ";";
 #[derive(Debug)]
 pub struct VarDecl {
-    pub btype: BType,
+    // pub btype: BType,
     pub vardefs: Vec<VarDef>,
 }
 
-// BType         ::= "int";
-#[derive(Debug)]
-pub enum BType {
-    Int,
-    // Void,
-    // Double,
-    // Float,
-    // String,
-}
+// // BType         ::= "int";
+// #[derive(Debug)]
+// pub enum BType {
+//     Int,
+//     // Void,
+//     // Double,
+//     // Float,
+//     // String,
+// }
 
 // ConstDef      ::= IDENT "=" ConstInitVal;
 #[derive(Debug)]

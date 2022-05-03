@@ -18,21 +18,36 @@ match {
 
 // ------------------------------ Function ------------------------------------------
 
-// CompUnit    ::= [CompUnit] FuncDef
+// CompUnit    ::= [CompUnit] (Decl | FuncDef)
 pub CompUnit: CompUnit = {
-    <func: FuncDef> <mut funcs: (<FuncDef>)*> => {
+    <func: DeclFuncPair> <mut funcs: (<DeclFuncPair>)*> => {
         funcs.insert(0, func); // param is the first.
         CompUnit {funcs}
     },
 }
 
+DeclFuncPair: DeclFuncPair = {
+    <decl: Decl> => DeclFuncPair::Decl(decl),
+    <func: FuncDef> => DeclFuncPair::Func(func),
+}
+
+
 // FuncDef     ::= FuncType IDENT "(" [FuncFParams] ")" Block;
 FuncDef: FuncDef = {
-  <func_type: FuncType> <ident: Ident> "(" ")" <block: Block> => FuncDef {func_type, ident, block, params: None},
-
-  <func_type: FuncType> <ident: Ident> "(" <param: FuncFParams> ")" <block: Block> => 
-        FuncDef {func_type, ident, block, params: Some(param)},
+    "int" <ident: Ident> "(" ")" <block: Block> => 
+        FuncDef {func_type: 0, ident, block, params: None},
+    "void" <ident: Ident> "("  ")" <block: Block> => 
+        FuncDef {func_type: 1, ident, block, params: None},
+        
+    "int" <ident: Ident> "(" <param: FuncFParams> ")" <block: Block> => 
+        FuncDef {func_type: 0, ident, block, params: Some(param)},
+    "void" <ident: Ident> "(" <param: FuncFParams> ")" <block: Block> => 
+        FuncDef {func_type: 1, ident, block, params: Some(param)},
 }
+
+// FuncDefFirstPart: FuncDefFirstPart {
+//     <> <ident: Ident> "(" => 
+// }
 
 FuncType: FuncType = {
     "int" => FuncType::Int,
@@ -50,9 +65,8 @@ FuncFParams: FuncFParams = {
 
 // FuncFParam  ::= BType IDENT;
 FuncFParam: FuncFParam = {
-    <btype: BType> <ident: Ident> => FuncFParam{btype, ident},
+    "int" <ident: Ident> => FuncFParam{ident},
 }
-
 
 
 // ------------------------------ body ------------------------------------------
@@ -133,23 +147,22 @@ Decl: Decl = {
 
 // ConstDecl     ::= "const" BType ConstDef {"," ConstDef} ";";
 ConstDecl: ConstDecl = {
-    "const" <btype: BType> <def: ConstDef> <mut constdefs: ("," <ConstDef>)*> ";"  => {
+    "const" "int" <def: ConstDef> <mut constdefs: ("," <ConstDef>)*> ";"  => {
         constdefs.insert(0, def); // def is the first.
-        ConstDecl {btype, constdefs}
+        ConstDecl {constdefs}
     },
 }
 
 // VarDecl       ::= BType VarDef {"," VarDef} ";";
 VarDecl: VarDecl = {
-    <btype: BType> <def: VarDef> <mut vardefs: ("," <VarDef>)*> ";" => {
+    "int" <def: VarDef> <mut vardefs: ("," <VarDef>)*> ";" => {
         vardefs.insert(0, def);
-        VarDecl {btype, vardefs}
+        VarDecl {vardefs}
     }
 }
 
-// BType         ::= "int";
-BType: BType = "int" => BType::Int;
-
+// // BType         ::= "int";
+// BType: BType = "int" => BType::Int;
 
 // ConstDef      ::= IDENT "=" ConstInitVal;
 ConstDef: ConstDef = {

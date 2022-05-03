@@ -10,33 +10,12 @@ decl @stoptime()
 
 
 
-
-global @var = alloc i32, 12
-
-fun @add(@a: i32, @b: i32): i32 {
-
-%entry_4:
-    @var_1 = alloc i32
-    store @a, @var_1
-    @var_2 = alloc i32
-    store @b, @var_2
-    %var_5 = load @var_1
-    %var_9 = load @var_2
-    %var_12 = add %var_5, %var_9
-    ret %var_12
-
-%entry_17:
-    ret 0
-}
-
-
 fun @main(): i32 {
 
-%entry_19:
-    %var_36 = call @add(1, 2)
-    ret %var_36
+%entry_2:
+    ret 0
 
-%entry_43:
+%entry_11:
     ret 0
 }
 

@@ -9,12 +9,12 @@ use crate::koopa_ir_gen::expression::ExpResult;
 
 
 pub trait DeclResult {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType;
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType;
 }
 
 
 impl DeclResult for BlockItem {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         // BlockItem ::= Decl | Stmt;
         match self {
             BlockItem::Statement(stmt) => {
@@ -26,7 +26,7 @@ impl DeclResult for BlockItem {
                 };
             },
             BlockItem::Decl(decl) => {
-                let decl_ret_val = decl.eval(scope, size);
+                let decl_ret_val = decl.eval(scope, size, is_global);
                 return decl_ret_val;
             }
         }
@@ -35,14 +35,14 @@ impl DeclResult for BlockItem {
 
 // Decl ::= ConstDecl | VarDecl;
 impl DeclResult for Decl {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         match self {
             Decl::Constdecl(constdecl) => {
-                let ret_val = constdecl.eval(scope, size);
+                let ret_val = constdecl.eval(scope, size, is_global);
                 return ret_val;
             },
             Decl::Vardecl(vardecl) => {
-                let ret_val = vardecl.eval(scope, size);
+                let ret_val = vardecl.eval(scope, size, is_global);
                 return ret_val;
             },
         }
@@ -51,12 +51,12 @@ impl DeclResult for Decl {
 
 // ConstDecl ::= "const" BType ConstDef {"," ConstDef} ";";
 impl DeclResult for ConstDecl {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
 
         for def in &self.constdefs {
-            let ret_val = def.eval(scope, size);
+            let ret_val = def.eval(scope, size, is_global);
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
@@ -66,14 +66,12 @@ impl DeclResult for ConstDecl {
 
 // VarDecl ::= BType VarDef {"," VarDef} ";";
 impl DeclResult for VarDecl {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
-        // let type_str = match self.btype {
-        //     _ => "int",
-        // };
+
         for def in &self.vardefs {
-            let ret_val = def.eval(scope, size);
+            let ret_val = def.eval(scope, size, is_global);
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
@@ -84,7 +82,7 @@ impl DeclResult for VarDecl {
 
 // ConstDef ::= IDENT "=" ConstInitVal;
 impl DeclResult for ConstDef {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let ret_val = self.constinitval.eval(scope, size);
         let size = ret_val.size;
 
@@ -98,7 +96,7 @@ impl DeclResult for ConstDef {
 
 // VarDef ::= IDENT | IDENT "=" InitVal;
 impl DeclResult for VarDef {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut program = "".to_string();
         match self {
             VarDef::Ident(ident) => {
@@ -127,8 +125,3 @@ impl DeclResult for VarDef {
         }
     }
 }
-
-
-// // BType ::= "int";
-// TreePoint::BType(node) => {
-// },

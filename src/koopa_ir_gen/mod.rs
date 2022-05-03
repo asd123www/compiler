@@ -1,4 +1,3 @@
-
 mod ret_types;
 mod expression;
 mod declare;
@@ -6,6 +5,7 @@ mod statement;
 
 use ret_types::*;
 use crate::ast::*;
+use core::{panic};
 use std::{collections::HashMap};
 use crate::koopa_ir_gen::declare::DeclResult;
 
@@ -23,9 +23,9 @@ fn get_name(id: i32, is_constant: bool) -> String {
 
 enum TreePoint<'a> {
     CompUnit(CompUnit),
-    FuncDef(FuncDef),
-    FuncType(FuncType),
-    FuncFParams(FuncFParams),
+    FuncDef(&'a FuncDef),
+    FuncType(&'a FuncType),
+    FuncFParams(&'a FuncFParams),
     Block(&'a Block),
 }
 
@@ -45,21 +45,29 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
             fn insert_function(scope: &mut HashMap<String, (bool, i32)>, func_def: &FuncDef) {
                 // insert the function definition.
                 println!("insert: {}\n", &func_def.ident);
-                match &func_def.func_type {
-                    FuncType::Int => {
+                match func_def.func_type {
+                    0 => { // int
                         scope.insert(format!("{}_function", &func_def.ident), (false, 0));
                     },
-                    FuncType::Void => {
+                    1 => {
                         scope.insert(format!("{}_function", &func_def.ident), (true, 1));
                     },
+                    _ => {panic!("No function type labeled this.");}
                 }
             }
-            for func in node.funcs {
-                insert_function(&mut scope, &func);
-                let func_val = dfs(TreePoint::FuncDef(func), &scope, size);
+            for pair in &node.funcs {
+                match &pair {
+                    DeclFuncPair::Func(func) => {
+                        insert_function(&mut scope, &func);
+                        let func_val = dfs(TreePoint::FuncDef(func), &scope, size);
+        
+                        program.push_str(&func_val.program);
+                        size = func_val.size;
+                    },
+                    DeclFuncPair::Decl(decl) => {
 
-                program.push_str(&func_val.program);
-                size = func_val.size;
+                    },
+                }
             }
 
             return BodyRetType {
@@ -75,7 +83,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
             program.push_str(&format!("fun @{}(", node.ident));
 
             // if we have parameter, we have to create variables.
-            match node.params {
+            match &node.params {
                 None => {},
                 Some(v) => {
                     for x in &v.params {
@@ -97,8 +105,15 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
             }
             program.push_str(")");
 
+
+            let ftype = match node.func_type {
+                0 => FuncType::Int,
+                1 => FuncType::Void,
+                _ => panic!("No function type labeled this."),
+            };
+
             // get the type of return value.
-            let ret_val = dfs(TreePoint::FuncType(node.func_type), &scope, size);
+            let ret_val = dfs(TreePoint::FuncType(&ftype), &scope, size);
 
 
             program.push_str(&ret_val.program);
@@ -130,7 +145,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
 
         TreePoint::FuncFParams(node) => {
             let mut is_first = true;
-            for x in node.params {
+            for x in &node.params {
                 // maybe pointer in the future????
                 if is_first {
                     program.push_str(&format!("@{}: i32", x.ident));
@@ -166,7 +181,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
         TreePoint::Block(node) => {
             for item in &node.items { // enumerate the blocks in body.
                 // set the label.
-                let block = item.eval(&mut scope, size);
+                let block = item.eval(&mut scope, size, false);
                 size = block.size;
                 program.push_str(&block.program);
             }
@@ -182,6 +197,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
 
 pub fn generator(start: CompUnit) -> String {
     let size = 0;
+// global @var = alloc i32, 12\n\n
     let mut program = "
 decl @getint(): i32
 decl @getch(): i32
@@ -190,8 +206,7 @@ decl @putint(i32)
 decl @putch(i32)
 decl @putarray(i32, *i32)
 decl @starttime()
-decl @stoptime()\n\n\n\n
-global @var = alloc i32, 12\n\n".to_string();
+decl @stoptime()\n\n\n\n".to_string();
     let mut scope: HashMap<String, (bool, i32)> = HashMap::new();
 
     // add std::functions to scope.
