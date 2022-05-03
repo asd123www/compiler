@@ -12,6 +12,14 @@ use crate::koopa_ir_gen::declare::DeclResult;
 // use self::expression::ExpResult;
 
 
+// return variable name based on whether it's constant or not.
+fn get_name(id: i32, is_constant: bool) -> String {
+    if is_constant {
+        id.to_string()
+    } else {
+        format!("%var_{}", id)
+    }
+}
 
 enum TreePoint<'a> {
     CompUnit(CompUnit),
@@ -24,25 +32,25 @@ enum TreePoint<'a> {
 
 // tranverse the syntax tree to translate.
 // return (size, Program), size for unique identify of the node.
-fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> BodyRetType {
+fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetType {
     // consider the indent!
     let mut size = size;
     let mut program = String::from("");
-    let mut scope: HashMap<String, i32> = par.clone(); // inherit the variables from parent.
+    let mut scope: HashMap<String, (bool, i32)> = par.clone(); // inherit the variables from parent.
 
     match pt {
 
         // CompUnit ::= [CompUnit] FuncDef;
         TreePoint::CompUnit(node) => {
-            fn insert_function(scope: &mut HashMap<String, i32>, func_def: &FuncDef) {
+            fn insert_function(scope: &mut HashMap<String, (bool, i32)>, func_def: &FuncDef) {
                 // insert the function definition.
                 println!("insert: {}\n", &func_def.ident);
                 match &func_def.func_type {
                     FuncType::Int => {
-                        scope.insert(format!("{}_function", &func_def.ident), 0);
+                        scope.insert(format!("{}_function", &func_def.ident), (false, 0));
                     },
                     FuncType::Void => {
-                        scope.insert(format!("{}_function", &func_def.ident), 1);
+                        scope.insert(format!("{}_function", &func_def.ident), (true, 1));
                     },
                 }
             }
@@ -62,7 +70,6 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> BodyRetType {
         },
         
         // FuncDef     ::= FuncType IDENT "(" [FuncFParams] ")" Block;
-        // 还没加入参数卧槽.
         TreePoint::FuncDef(node) => {
             let mut load_params = "".to_string();
             program.push_str(&format!("fun @{}(", node.ident));
@@ -80,7 +87,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, i32>, size: i32) -> BodyRetType {
                         load_params.push_str(&format!("    store @{}, @var_{}\n", x.ident , size));
 
                         // add parameter to scope. And parameter is variable.
-                        scope.insert(format!("{}", x.ident), size << 1);
+                        scope.insert(format!("{}", x.ident), (false, size));
                     }
                     let param_val = dfs(TreePoint::FuncFParams(v), &scope, size);
                     program.push_str(&param_val.program);
@@ -185,17 +192,17 @@ decl @putarray(i32, *i32)
 decl @starttime()
 decl @stoptime()\n\n\n\n
 global @var = alloc i32, 12\n\n".to_string();
-    let mut scope: HashMap<String, i32> = HashMap::new();
+    let mut scope: HashMap<String, (bool, i32)> = HashMap::new();
 
     // add std::functions to scope.
-    scope.insert("getint_function".to_string(), 0);
-    scope.insert("getch_function".to_string(), 0);
-    scope.insert("getarray_function".to_string(), 0);
-    scope.insert("putint_function".to_string(), 1);
-    scope.insert("putch_function".to_string(), 1);
-    scope.insert("putarray_function".to_string(), 1);
-    scope.insert("starttime_function".to_string(), 1);
-    scope.insert("stoptime_function".to_string(), 1);
+    scope.insert("getint_function".to_string(), (false, 0));
+    scope.insert("getch_function".to_string(), (false, 0));
+    scope.insert("getarray_function".to_string(), (false, 0));
+    scope.insert("putint_function".to_string(), (true, 1));
+    scope.insert("putch_function".to_string(), (true, 1));
+    scope.insert("putarray_function".to_string(), (true, 1));
+    scope.insert("starttime_function".to_string(), (true, 1));
+    scope.insert("stoptime_function".to_string(), (true, 1));
 
     let result = dfs(TreePoint::CompUnit(start), &scope, size);
     program.push_str(&result.program);

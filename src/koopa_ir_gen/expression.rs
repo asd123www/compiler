@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use crate::ast::*;
 use crate::koopa_ir_gen::ExpRetType;
-
+use crate::koopa_ir_gen::get_name;
 
 // how to maintain the expression result?
 // 1. assign unique id to node for unique variable name.
 // 2. attach a `ret` to struct store the result ID.
 
 pub trait ExpResult {
-    fn eval(&self, scope: &HashMap<String, i32>, size: i32) -> ExpRetType;
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size: i32) -> ExpRetType;
 }
 
 
@@ -17,7 +17,7 @@ pub trait ExpResult {
 
 // ConstInitVal ::= ConstExp;
 impl ExpResult for ConstInitVal {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         let ret_val = self.constexp.eval(scope, size);
         return ret_val;
     }
@@ -25,7 +25,7 @@ impl ExpResult for ConstInitVal {
 
 // ConstExp ::= Exp;
 impl ExpResult for ConstExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         let ret_val = self.exp.eval(scope, size);
         return ret_val;
     }
@@ -33,7 +33,7 @@ impl ExpResult for ConstExp {
 
 // InitVal ::= Exp;
 impl ExpResult for InitVal {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         let ret_val = self.exp.eval(scope, size);
         return ret_val;
     }
@@ -46,7 +46,7 @@ impl ExpResult for InitVal {
 
 // Exp ::= LOrExp;
 impl ExpResult for Exp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         let ret_val = self.lorexp.eval(scope, size);
         return ret_val;
     }
@@ -54,7 +54,7 @@ impl ExpResult for Exp {
 
 // PrimaryExp ::= "(" Exp ")" | LVal | Number;
 impl ExpResult for PrimaryExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         let mut program = String::from("");
         match self {
             PrimaryExp::Exp(exp) => {
@@ -64,38 +64,39 @@ impl ExpResult for PrimaryExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             PrimaryExp::Num(num) => {
-                program.push_str(&format!("    %var_{} = add 0, {}\n", size + 1, num));
+                // constant, we don't need variable.
+                // program.push_str(&format!("    %var_{} = add 0, {}\n", size + 1, num));
 
                 return ExpRetType {
                     size: size + 1,
                     program: program,
-                    exp_res_id: size + 1,
-                    const_value: *num,
+                    exp_res_id: *num,
+                    is_constant: true,
                 };
             }
             PrimaryExp::Lval(lval) => {
                 let var = scope.get(&format!("{}", lval.ident)).unwrap();
 
-                if (var & 1) == 1 { // constant variable.
+                if var.0 { // constant variable.
                     return ExpRetType {
                         size: size,
                         program: program,
-                        exp_res_id: var >> 1,
-                        const_value: var >> 1,
+                        exp_res_id: var.1,
+                        is_constant: true, // high bits is value.
                     };
                 }
 
                 // %2 = load @x
-                program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, var >> 1));
+                program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, var.1));
                 return ExpRetType {
                     size: size + 1,
                     program: program,
                     exp_res_id: size + 1,
-                    const_value: -1,
+                    is_constant: false,
                 };
             }
         }
@@ -106,7 +107,7 @@ impl ExpResult for PrimaryExp {
 //            | UnaryOp UnaryExp
 //            | IDENT "(" [FuncRParams] ")"
 impl ExpResult for UnaryExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         let mut size = size;
         let mut program = String::from("");
         match self {
@@ -117,7 +118,7 @@ impl ExpResult for UnaryExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             UnaryExp::Funcall(ident, params) => {
@@ -129,14 +130,15 @@ impl ExpResult for UnaryExp {
                         let mut is_first = true;
                         for exp in &v.params {
                             let ret_val = exp.eval(scope, size);
+                            let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
                             size = ret_val.size;
 
                             // we should first evaluate all the value, then use it.
                             program.push_str(&ret_val.program);
                             if is_first {
-                                params_str.push_str(&format!("%var_{}", ret_val.exp_res_id));
+                                params_str.push_str(&format!("{}", &name));
                             } else {
-                                params_str.push_str(&format!(", %var_{}", ret_val.exp_res_id));
+                                params_str.push_str(&format!(", {}", &name));
                             }
                             is_first = false;
                         }
@@ -147,14 +149,14 @@ impl ExpResult for UnaryExp {
                 // is it return type `void` or `int`?
                 println!("query: {}_function\n", &ident);
                 let is_void = scope.get(&format!("{}_function", &ident)).unwrap();
-                if *is_void == 0 { // it is `int`
+                if !is_void.0 { // it is `int`
                     params_str = format!("    %var_{} = {}", size + 1, params_str);
                     program.push_str(&params_str);
                     return ExpRetType {
                         size: size + 1,
                         program: program,
                         exp_res_id: size + 1,
-                        const_value: -1,
+                        is_constant: false,
                     }
                 }
                 
@@ -163,7 +165,7 @@ impl ExpResult for UnaryExp {
                     size: size,
                     program: program,
                     exp_res_id: -1,
-                    const_value: -1,
+                    is_constant: false,
                 }
             },
             UnaryExp::Unaryexp(unaryop, unaryexp) => {
@@ -175,31 +177,39 @@ impl ExpResult for UnaryExp {
                             size: ret_val.size + 1,
                             program: ret_val.program,
                             exp_res_id: ret_val.exp_res_id,
-                            const_value: ret_val.const_value,
+                            is_constant: ret_val.is_constant,
                         };
                     },
                     UnaryOp::Sub => {
                         let size = ret_val.size + 1;
-                        program.push_str(&ret_val.program);
-                        program.push_str(&format!("    %var_{} = sub 0, %var_{}\n", size, ret_val.exp_res_id));
+                        let mut val = -ret_val.exp_res_id;
+                        if !ret_val.is_constant { // constant don't need it.
+                            program.push_str(&ret_val.program);
+                            program.push_str(&format!("    %var_{} = sub 0, %var_{}\n", size, ret_val.exp_res_id));
+                            val = size;
+                        }
 
                         return ExpRetType {
                             size: size,
                             program: program,
-                            exp_res_id: size,
-                            const_value: -ret_val.const_value,
+                            exp_res_id: val,
+                            is_constant: ret_val.is_constant,
                         };
                     },
                     UnaryOp::Not => {
                         let size = ret_val.size + 1;
-                        program.push_str(&ret_val.program);
-                        program.push_str(&format!("    %var_{} = eq 0, %var_{}\n", size, ret_val.exp_res_id));
+                        let mut val = (ret_val.exp_res_id == 0) as i32;
+                        if !ret_val.is_constant { // constant don't need it.
+                            program.push_str(&ret_val.program);
+                            program.push_str(&format!("    %var_{} = eq 0, %var_{}\n", size, ret_val.exp_res_id));
+                            val = size;
+                        }
 
                         return ExpRetType {
                             size: size,
                             program: program,
-                            exp_res_id: size,
-                            const_value: !ret_val.const_value,
+                            exp_res_id: val,
+                            is_constant: ret_val.is_constant,
                         };
                     },
                 }
@@ -209,9 +219,58 @@ impl ExpResult for UnaryExp {
 }
 
 
+fn binary_operation(program: &mut String, size: &mut i32, op: &str, val1: &ExpRetType, val2: &ExpRetType) -> i32 {
+
+    // 太尼玛丑了.
+    let mut val = {
+        if op == "mul" {
+            val1.exp_res_id * val2.exp_res_id
+        } else if op == "div" {
+            val1.exp_res_id / val2.exp_res_id
+        } else if op == "mod" {
+            val1.exp_res_id % val2.exp_res_id
+        } else if op == "add" {
+            val1.exp_res_id + val2.exp_res_id
+        } else if op == "sub" {
+            val1.exp_res_id - val2.exp_res_id
+        } else if op == "eq" {
+            (val1.exp_res_id == val2.exp_res_id) as i32
+        } else if op == "ne" {
+            (val1.exp_res_id != val2.exp_res_id) as i32
+        } else if op == "lt" {
+            (val1.exp_res_id < val2.exp_res_id) as i32
+        } else if op == "gt" {
+            (val1.exp_res_id > val2.exp_res_id) as i32
+        } else if op == "le" {
+            (val1.exp_res_id <= val2.exp_res_id) as i32
+        } else if op == "ge" {
+            (val1.exp_res_id >= val2.exp_res_id) as i32
+        } else {
+            0
+        }
+    };
+
+    if !val1.is_constant || !val2.is_constant {
+        let name1 = get_name(val1.exp_res_id, val1.is_constant);
+        let name2 = get_name(val2.exp_res_id, val2.is_constant);
+
+        // if any value is constant, then there shouldn't be any code.
+        if !val1.is_constant {
+            program.push_str(&val1.program);
+        }
+        if !val2.is_constant {
+            program.push_str(&val2.program);
+        }
+        program.push_str(&format!("    %var_{} = {} {}, {}\n", size, op, name1, name2));
+        val = *size; // it is not a constant, so return variable id.
+    }
+
+    val
+}
+
 // MulExp ::= UnaryExp | MulExp ("*" | "/" | "%") UnaryExp;
 impl ExpResult for MulExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         match self {
             MulExp::Unaryexp(unaryexp) => {
                 let ret_val = unaryexp.eval(scope, size); 
@@ -220,7 +279,7 @@ impl ExpResult for MulExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             MulExp::Mulexp(mulexp, unaryexp, op) |
@@ -228,26 +287,16 @@ impl ExpResult for MulExp {
             MulExp::Modexp(mulexp, unaryexp, op) => {
                 let ret_val1 = (*mulexp).eval(scope, size);
                 let ret_val2 = unaryexp.eval(scope, ret_val1.size);
-                let size = ret_val2.size + 1;
+                let mut size = ret_val2.size + 1;
                 let mut program = String::from("");
 
-                program.push_str(&ret_val1.program);
-                program.push_str(&ret_val2.program);
-                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
-    
+                let val = binary_operation(&mut program, &mut size, op, &ret_val1, &ret_val2);
+
                 return ExpRetType {
                     size: size,
                     program: program,
-                    exp_res_id: size,
-                    const_value: {
-                        if op == "mul" {
-                            ret_val1.const_value * ret_val2.const_value
-                        } else if op == "div" {
-                            ret_val1.const_value / ret_val2.const_value
-                        } else { // "mod"
-                            ret_val1.const_value % ret_val2.const_value
-                        }
-                    }
+                    exp_res_id: val,
+                    is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },
         }
@@ -256,7 +305,7 @@ impl ExpResult for MulExp {
 
 // AddExp ::= MulExp | AddExp ("+" | "-") MulExp;
 impl ExpResult for AddExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         match self {
             AddExp::Mulexp(mulexp) => {
                 let ret_val = mulexp.eval(scope, size);
@@ -265,31 +314,23 @@ impl ExpResult for AddExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             AddExp::Addexp(addexp, mulexp, op) |
             AddExp::Subexp(addexp, mulexp, op) => {
                 let ret_val1 = (*addexp).eval(scope, size);
                 let ret_val2 = (*mulexp).eval(scope, ret_val1.size);
-                let size = ret_val2.size + 1;
+                let mut size = ret_val2.size + 1;
                 let mut program = String::from("");
 
-                program.push_str(&ret_val1.program);
-                program.push_str(&ret_val2.program);
-                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
-    
+                let val = binary_operation(&mut program, &mut size, op, &ret_val1, &ret_val2);
+
                 return ExpRetType {
                     size: size,
                     program: program,
-                    exp_res_id: size,
-                    const_value: {
-                        if op == "add" {
-                            ret_val1.const_value + ret_val2.const_value
-                        } else { // "sub"
-                            ret_val1.const_value - ret_val2.const_value
-                        }
-                    }
+                    exp_res_id: val,
+                    is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },
         }
@@ -298,7 +339,7 @@ impl ExpResult for AddExp {
 
 // RelExp ::= AddExp | RelExp ("<" | ">" | "<=" | ">=") AddExp;
 impl ExpResult for RelExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         match self {
             RelExp::Addexp(addexp) => {
                 let ret_val = addexp.eval(scope, size); 
@@ -307,7 +348,7 @@ impl ExpResult for RelExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             RelExp::Ltexp(relexp, addexp, op) |
@@ -316,28 +357,16 @@ impl ExpResult for RelExp {
             RelExp::Leexp(relexp, addexp, op) => {
                 let ret_val1 = (*relexp).eval(scope, size);
                 let ret_val2 = addexp.eval(scope, ret_val1.size); 
-                let size = ret_val2.size + 1;
+                let mut size = ret_val2.size + 1;
                 let mut program = String::from("");
 
-                program.push_str(&ret_val1.program);
-                program.push_str(&ret_val2.program);
-                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
-    
+                let val = binary_operation(&mut program, &mut size, op, &ret_val1, &ret_val2);
+
                 return ExpRetType {
                     size: size,
                     program: program,
-                    exp_res_id: size,
-                    const_value: {
-                        if op == "lt" {
-                            (ret_val1.const_value < ret_val2.const_value) as i32
-                        } else if op == "gt" {
-                            (ret_val1.const_value > ret_val2.const_value) as i32
-                        } else if op == "le" {
-                            (ret_val1.const_value <= ret_val2.const_value) as i32
-                        } else { // "ge"
-                            (ret_val1.const_value >= ret_val2.const_value) as i32
-                        }
-                    },
+                    exp_res_id: val,
+                    is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             }
         }
@@ -346,7 +375,7 @@ impl ExpResult for RelExp {
 
 // EqExp ::= RelExp | EqExp ("==" | "!=") RelExp;
 impl ExpResult for EqExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         match self {
             EqExp::Relexp(relexp) => {
                 let ret_val = relexp.eval(scope, size); 
@@ -355,31 +384,23 @@ impl ExpResult for EqExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             EqExp::Eqexp(eqexp, relexp, op) |
             EqExp::Neqexp(eqexp, relexp, op) => {
                 let ret_val1 = (*eqexp).eval(scope, size);
                 let ret_val2 = relexp.eval(scope, ret_val1.size + 1);
-                let size = ret_val2.size + 1;
+                let mut size = ret_val2.size + 1;
                 let mut program = String::from("");
 
-                program.push_str(&ret_val1.program);
-                program.push_str(&ret_val2.program);
-                program.push_str(&format!("    %var_{} = {} %var_{}, %var_{}\n", size, op, ret_val1.exp_res_id, ret_val2.exp_res_id));
-    
+                let val = binary_operation(&mut program, &mut size, op, &ret_val1, &ret_val2);
+
                 return ExpRetType {
                     size: size,
                     program: program,
-                    exp_res_id: size,
-                    const_value: {
-                        if op == "eq" {
-                            (ret_val1.const_value == ret_val2.const_value) as i32
-                        } else { // "ne"
-                            (ret_val1.const_value != ret_val2.const_value) as i32
-                        }
-                    }
+                    exp_res_id: val,
+                    is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },
         }
@@ -389,7 +410,7 @@ impl ExpResult for EqExp {
 // we need to add short-circuit evaluation.
 // LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 impl ExpResult for LAndExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         match self {
             LAndExp::Eqexp(eqexp) => {
                 let ret_val = eqexp.eval(scope, size);
@@ -398,12 +419,15 @@ impl ExpResult for LAndExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             LAndExp::Andexp(landexp, eqexp) => {
                 let ret_val1 = (*landexp).eval(scope, size);
                 let ret_val2 = eqexp.eval(scope, ret_val1.size);
+                let name1 = get_name(ret_val1.exp_res_id, ret_val1.is_constant);
+                let name2 = get_name(ret_val2.exp_res_id, ret_val2.is_constant);
+
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -413,14 +437,14 @@ impl ExpResult for LAndExp {
 
                 // first evaluate the left.
                 program.push_str(&ret_val1.program); // jump according to ret_val.
-                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val1.exp_res_id, size, size + 2));
+                program.push_str(&format!("    br {}, %entry_{}, %entry_{}\n", &name1, size, size + 2));
                 
                 // if first is true, then jump to here.
                 program.push_str(&format!("\n%entry_{}:\n", size));
                 // then evaluate the left.
                 program.push_str(&ret_val2.program); // jump according to ret_val.
-                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val2.exp_res_id, size + 1, size + 2));
-                
+                program.push_str(&format!("    br {}, %entry_{}, %entry_{}\n", &name2, size + 1, size + 2));
+
                 // both is true.
                 program.push_str(&format!("\n%entry_{}:\n", size + 1));
                 program.push_str(&format!("    store 1, @condition_{}\n", size));
@@ -432,10 +456,14 @@ impl ExpResult for LAndExp {
                 return ExpRetType {
                     size: size + 2,
                     program: program,
-                    exp_res_id: size + 2,
-                    const_value: { // do we really need it?
-                        (ret_val1.const_value != 0 && ret_val2.const_value != 0) as i32
-                    }
+                    exp_res_id: {
+                        if ret_val1.is_constant && ret_val2.is_constant {
+                            ((ret_val1.exp_res_id != 0) && (ret_val2.exp_res_id != 0)) as i32
+                        } else {
+                            size + 2
+                        }
+                    },
+                    is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },
         }
@@ -444,7 +472,7 @@ impl ExpResult for LAndExp {
 
 // LOrExp ::= LAndExp | LOrExp "||" LAndExp;
 impl ExpResult for LOrExp {
-    fn eval(&self, scope: &HashMap<String, i32>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
         match self {
             LOrExp::Landexp(landexp) => {
                 let ret_val = landexp.eval(scope, size);
@@ -453,12 +481,15 @@ impl ExpResult for LOrExp {
                     size: ret_val.size + 1,
                     program: ret_val.program,
                     exp_res_id: ret_val.exp_res_id,
-                    const_value: ret_val.const_value,
+                    is_constant: ret_val.is_constant,
                 };
             },
             LOrExp::Orexp(lorexp, landexp) => {
                 let ret_val1 = (*lorexp).eval(scope, size);
                 let ret_val2 = landexp.eval(scope, ret_val1.size);
+                let name1 = get_name(ret_val1.exp_res_id, ret_val1.is_constant);
+                let name2 = get_name(ret_val2.exp_res_id, ret_val2.is_constant);
+
                 let size = ret_val2.size + 1;
                 let mut program = String::from("");
 
@@ -469,13 +500,13 @@ impl ExpResult for LOrExp {
 
                 // first evaluate the left.
                 program.push_str(&ret_val1.program); // jump according to ret_val.
-                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val1.exp_res_id, size + 1, size));
+                program.push_str(&format!("    br {}, %entry_{}, %entry_{}\n", &name1, size + 1, size));
                 
                 // if first is false, then jump to here.
                 program.push_str(&format!("\n%entry_{}:\n", size));
                 // then evaluate the left.
                 program.push_str(&ret_val2.program); // jump according to ret_val.
-                program.push_str(&format!("    br %var_{}, %entry_{}, %entry_{}\n", ret_val2.exp_res_id, size + 1, size + 2));
+                program.push_str(&format!("    br {}, %entry_{}, %entry_{}\n", &name2, size + 1, size + 2));
                 
                 // exist one condition is true.
                 program.push_str(&format!("\n%entry_{}:\n", size + 1));
@@ -485,20 +516,17 @@ impl ExpResult for LOrExp {
                 program.push_str(&format!("\n%entry_{}:\n", size + 2));
                 program.push_str(&format!("    %var_{} = load @condition_{}\n", size + 2, size));
 
-                // program.push_str(&ret_val1.program);
-                // program.push_str(&ret_val2.program);
-    
-                // program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size, ret_val1.exp_res_id));
-                // program.push_str(&format!("    %var_{} = ne 0, %var_{}\n", size + 1, ret_val2.exp_res_id));
-                // program.push_str(&format!("    %var_{} = or %var_{}, %var_{}\n", size + 2, size, size + 1));
-
                 return ExpRetType {
                     size: size + 2,
                     program: program,
-                    exp_res_id: size + 2,
-                    const_value: {
-                        (ret_val1.const_value != 0 || ret_val2.const_value != 0) as i32
-                    }
+                    exp_res_id: {
+                        if ret_val1.is_constant && ret_val2.is_constant {
+                            ((ret_val1.exp_res_id != 0) || (ret_val2.exp_res_id != 0)) as i32
+                        } else {
+                            size + 2
+                        }
+                    },
+                    is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },
         }

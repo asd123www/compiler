@@ -3,17 +3,18 @@ use crate::koopa_ir_gen::DeclRetType;
 
 
 // use super::ret_types::*;
+use crate::koopa_ir_gen::get_name;
 use std::collections::HashMap;
 use crate::koopa_ir_gen::expression::ExpResult;
 
 
 pub trait DeclResult {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType;
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType;
 }
 
 
 impl DeclResult for BlockItem {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
         // BlockItem ::= Decl | Stmt;
         match self {
             BlockItem::Statement(stmt) => {
@@ -34,7 +35,7 @@ impl DeclResult for BlockItem {
 
 // Decl ::= ConstDecl | VarDecl;
 impl DeclResult for Decl {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
         match self {
             Decl::Constdecl(constdecl) => {
                 let ret_val = constdecl.eval(scope, size);
@@ -50,7 +51,7 @@ impl DeclResult for Decl {
 
 // ConstDecl ::= "const" BType ConstDef {"," ConstDef} ";";
 impl DeclResult for ConstDecl {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
 
@@ -65,7 +66,7 @@ impl DeclResult for ConstDecl {
 
 // VarDecl ::= BType VarDef {"," VarDef} ";";
 impl DeclResult for VarDecl {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
         // let type_str = match self.btype {
@@ -83,12 +84,13 @@ impl DeclResult for VarDecl {
 
 // ConstDef ::= IDENT "=" ConstInitVal;
 impl DeclResult for ConstDef {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
         let ret_val = self.constinitval.eval(scope, size);
         let size = ret_val.size;
 
+        assert!(ret_val.is_constant == true);
         // the constant's value is the expression.
-        scope.insert(format!("{}", self.ident), (ret_val.exp_res_id) << 1 | 1);
+        scope.insert(format!("{}", self.ident), (true, ret_val.exp_res_id));
 
         return DeclRetType {size, program: ret_val.program, flag: 0};
     }
@@ -96,12 +98,12 @@ impl DeclResult for ConstDef {
 
 // VarDef ::= IDENT | IDENT "=" InitVal;
 impl DeclResult for VarDef {
-    fn eval(&self, scope: &mut HashMap<String, i32>, size: i32) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32) -> DeclRetType {
         let mut program = "".to_string();
         match self {
             VarDef::Ident(ident) => {
                 // define.
-                scope.insert(format!("{}", ident), (size + 1) << 1);
+                scope.insert(format!("{}", ident), (false, size + 1));
                 // @x = alloc i32
                 program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
 
@@ -109,15 +111,16 @@ impl DeclResult for VarDef {
             },
             VarDef::Identinitval(ident, initval) => {
                 let ret_val = initval.eval(scope, size);
+                let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
                 let size = ret_val.size;
                 
                 program.push_str(&ret_val.program);
                 // define.
-                scope.insert(format!("{}", ident), (size + 1) << 1);
+                scope.insert(format!("{}", ident), (false, size + 1));
                 // @x = alloc i32
                 program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
                 // assignment: store %1, @x
-                program.push_str(&format!("    store %var_{}, @var_{}\n", ret_val.exp_res_id, size + 1)); // currently only i32.
+                program.push_str(&format!("    store {}, @var_{}\n", name, size + 1)); // currently only i32.
 
                 return DeclRetType {size: size + 1, program, flag: 0};
             },

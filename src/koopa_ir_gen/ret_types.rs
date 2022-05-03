@@ -3,11 +3,14 @@
 // pub const RETURN_STATE: i32 = -2;
 // pub const JUMP_STATE: i32 = -3;
 
+// exp_res_id:
+//     if is_constant == true: store constant value.
+//     else                    store variable ID.
 pub struct ExpRetType {
     pub size: i32,
     pub program: String,
     pub exp_res_id: i32,
-    pub const_value: i32,
+    pub is_constant: bool,
 }
 
 

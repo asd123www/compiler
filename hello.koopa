@@ -13,32 +13,30 @@ decl @stoptime()
 
 global @var = alloc i32, 12
 
+fun @add(@a: i32, @b: i32): i32 {
+
+%entry_4:
+    @var_1 = alloc i32
+    store @a, @var_1
+    @var_2 = alloc i32
+    store @b, @var_2
+    %var_5 = load @var_1
+    %var_9 = load @var_2
+    %var_12 = add %var_5, %var_9
+    ret %var_12
+
+%entry_17:
+    ret 0
+}
+
+
 fun @main(): i32 {
 
-%entry_2:
-    %var_3 = call @getint()
-    @var_10 = alloc i32
-    store %var_3, @var_10
-    %var_11 = call @getint()
-    @var_18 = alloc i32
-    store %var_11, @var_18
-    %var_19 = load @var_10
-    %var_23 = load @var_18
-    %var_26 = add %var_19, %var_23
-    call @putint(%var_26)
-    %var_37 = call @getch()
-    @var_44 = alloc i32
-    store %var_37, @var_44
-    %var_45 = load @var_44
-    call @putch(%var_45)
-    %var_59 = add 0, 33
-    call @putch(%var_59)
-    %var_73 = add 0, 10
-    call @putch(%var_73)
-    %var_87 = add 0, 0
-    ret %var_87
+%entry_19:
+    %var_36 = call @add(1, 2)
+    ret %var_36
 
-%entry_95:
+%entry_43:
     ret 0
 }
 
