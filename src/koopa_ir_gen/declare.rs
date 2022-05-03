@@ -102,8 +102,14 @@ impl DeclResult for VarDef {
             VarDef::Ident(ident) => {
                 // define.
                 scope.insert(format!("{}", ident), (false, size + 1));
-                // @x = alloc i32
-                program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
+
+                if !is_global {
+                    // @x = alloc i32
+                    program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
+                } else {
+                    // global @var = alloc i32, zeroinit
+                    program.push_str(&format!("global @var_{} = alloc i32, zeroinit\n", size + 1)); // currently only i32.
+                }
 
                 return DeclRetType {size: size + 1, program, flag: 0};
             },
@@ -111,15 +117,22 @@ impl DeclResult for VarDef {
                 let ret_val = initval.eval(scope, size);
                 let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
                 let size = ret_val.size;
-                
-                program.push_str(&ret_val.program);
-                // define.
-                scope.insert(format!("{}", ident), (false, size + 1));
-                // @x = alloc i32
-                program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
-                // assignment: store %1, @x
-                program.push_str(&format!("    store {}, @var_{}\n", name, size + 1)); // currently only i32.
 
+                if !is_global {
+                    program.push_str(&ret_val.program);
+                    // define.
+                    scope.insert(format!("{}", ident), (false, size + 1));
+                    // @x = alloc i32
+                    program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
+                    // assignment: store %1, @x
+                    program.push_str(&format!("    store {}, @var_{}\n", name, size + 1)); // currently only i32.
+                } else {
+                    assert!(ret_val.is_constant == true); // must be constant.
+                    // define.
+                    scope.insert(format!("{}", ident), (false, size + 1));
+                    // @x = alloc i32
+                    program.push_str(&format!("global @var_{} = alloc i32, {}\n", size + 1, ret_val.exp_res_id)); // currently only i32.
+                }
                 return DeclRetType {size: size + 1, program, flag: 0};
             },
         }

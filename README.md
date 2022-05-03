@@ -37,6 +37,9 @@ Therefore I assume it's value is fixed, not in run-time.
 
 ### Parser problem
 
+1. Variable Type only `int`, substitute the Btype.
+2. Integrate the small parts to a whole, eliminate the shift and reduce conflicts.
+
 ```
   /home/compiler/src/sysy.lalrpop:161:16: 161:34: Local ambiguity detected
 

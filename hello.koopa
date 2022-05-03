@@ -10,12 +10,26 @@ decl @stoptime()
 
 
 
+global @var_1 = alloc i32, zeroinit
+global @var_29 = alloc i32, 1
+
+
 fun @main(): i32 {
 
-%entry_2:
+%entry_31:
+    %var_32 = load @var_1
+    call @putint(%var_32)
+    call @putch(32)
+    call @putint(10)
+    call @putch(32)
+    call @putint(11)
+    call @putch(32)
+    %var_114 = load @var_29
+    call @putint(%var_114)
+    call @putch(10)
     ret 0
 
-%entry_11:
+%entry_150:
     ret 0
 }
 

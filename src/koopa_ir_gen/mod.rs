@@ -65,7 +65,10 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
                         size = func_val.size;
                     },
                     DeclFuncPair::Decl(decl) => {
+                        let decl_val = decl.eval(&mut scope, size, true);
 
+                        program.push_str(&decl_val.program);
+                        size = decl_val.size;
                     },
                 }
             }
@@ -80,7 +83,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
         // FuncDef     ::= FuncType IDENT "(" [FuncFParams] ")" Block;
         TreePoint::FuncDef(node) => {
             let mut load_params = "".to_string();
-            program.push_str(&format!("fun @{}(", node.ident));
+            program.push_str(&format!("\n\nfun @{}(", node.ident));
 
             // if we have parameter, we have to create variables.
             match &node.params {
