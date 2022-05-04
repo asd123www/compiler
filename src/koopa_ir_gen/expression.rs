@@ -1,9 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
-use crate::koopa_ir_gen::ExpRetType;
-use crate::koopa_ir_gen::get_name;
-
+use crate::koopa_ir_gen::{*};
 // how to maintain the expression result?
 // 1. assign unique id to node for unique variable name.
 // 2. attach a `ret` to struct store the result ID.
@@ -22,7 +20,7 @@ impl ExpResult for LVal {
 
         let var = scope.get(&format!("{}", self.ident)).unwrap();
 
-        if var.0 { // constant variable.
+        if var.0 == CONSTANT_INT { // constant variable.
             return ExpRetType {
                 size: size,
                 program: program,
@@ -40,11 +38,23 @@ impl ExpResult for LVal {
             program.push_str(&ret_val.program); // code for evaluation.
 
             let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
-            if is_first { // `array point` begin with @, but variable begin with `%`.
-                is_first = false;
-                program.push_str(&format!("    %var_{} = getelemptr @var_{}, {}\n", size + 1, pos, name));
+            if var.0 == VARIABLE_ARRAY {
+                if is_first { // `array point` begin with @, but variable begin with `%`.
+                    is_first = false;
+                    program.push_str(&format!("    %var_{} = getelemptr @var_{}, {}\n", size + 1, pos, name));
+                } else {
+                    program.push_str(&format!("    %var_{} = getelemptr %var_{}, {}\n", size + 1, pos, name));
+                }
             } else {
-                program.push_str(&format!("    %var_{} = getelemptr %var_{}, {}\n", size + 1, pos, name));
+                if is_first { // a **type !
+                    is_first = false;
+                    // %0 = load %arr
+                    size += 1;
+                    program.push_str(&format!("    %var_{} = load @var_{}\n", size, pos));
+                    program.push_str(&format!("    %var_{} = getptr %var_{}, {}\n", size + 1, size, name));
+                } else {
+                    program.push_str(&format!("    %var_{} = getelemptr %var_{}, {}\n", size + 1, pos, name));
+                }
             }
             size += 1;
             pos = size;
@@ -164,7 +174,7 @@ impl ExpResult for UnaryExp {
                 // is it return type `void` or `int`?
                 println!("query: {}_function\n", &ident);
                 let is_void = scope.get(&format!("{}_function", &ident)).unwrap();
-                if !is_void.0 { // it is `int`
+                if is_void.0 == VARIABLE_INT { // it is `int`
                     params_str = format!("    %var_{} = {}", size + 1, params_str);
                     program.push_str(&params_str);
                     return ExpRetType {
@@ -425,7 +435,7 @@ impl ExpResult for EqExp {
 // we need to add short-circuit evaluation.
 // LAndExp       ::= EqExp | LAndExp "&&" EqExp;
 impl ExpResult for LAndExp {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32) -> ExpRetType {
         match self {
             LAndExp::Eqexp(eqexp) => {
                 let ret_val = eqexp.eval(scope, size);
@@ -487,7 +497,7 @@ impl ExpResult for LAndExp {
 
 // LOrExp ::= LAndExp | LOrExp "||" LAndExp;
 impl ExpResult for LOrExp {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32) -> ExpRetType {
         match self {
             LOrExp::Landexp(landexp) => {
                 let ret_val = landexp.eval(scope, size);

@@ -12,7 +12,7 @@ use super::{TreePoint, ret_types::ExpRetType, dfs};
 //          | closed_statement
 //          | "while" "(" Exp ")" Stmt
 impl Statement {
-    pub fn eval(&self, scope: &HashMap<String, (bool, i32)>, size: i32) -> ExpRetType {
+    pub fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32) -> ExpRetType {
         match self {
             Statement::Open(os) => {
                 os.eval(scope, size)
@@ -28,7 +28,7 @@ impl Statement {
 // open_statement: IF '(' expression ')' statement
 //               | IF '(' expression ')' closed_statement ELSE open_statement
 impl OpenStatement {
-    pub fn eval(&self, scope: &HashMap<String, (bool, i32)>, size: i32) -> ExpRetType {
+    pub fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32) -> ExpRetType {
         let size = size;
         let mut program = "".to_string();
         match self {
@@ -116,7 +116,7 @@ impl OpenStatement {
 // closed_statement: non_if_statement
 //                 | IF '(' expression ')' closed_statement ELSE closed_statement
 impl ClosedStatement {
-    pub fn eval(&self, scope: &HashMap<String, (bool, i32)>, size: i32) -> ExpRetType {
+    pub fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32) -> ExpRetType {
         let mut program = "".to_string();
         match self {
             ClosedStatement::Stmt(stmt) => {
@@ -153,7 +153,7 @@ impl ClosedStatement {
 
 
 impl Stmt {
-    pub fn eval(&self, scope: &HashMap<String, (bool, i32)>, size: i32) -> ExpRetType {
+    pub fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32) -> ExpRetType {
         // Stmt ::= LVal "=" Exp ";"| "return" Exp ";";
         let mut size = size;
         let mut program = "".to_string();

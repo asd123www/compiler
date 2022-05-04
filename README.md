@@ -65,3 +65,5 @@ Therefore I assume it's value is fixed, not in run-time.
 We don't have to evaluate it during compiling!
 
 Just treat it as an ordinary array.
+
+### Function Parameter type is `pointer` or ``

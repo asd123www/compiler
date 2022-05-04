@@ -5,13 +5,13 @@ use super::{ret_types::InitRetType, expression::ExpResult};
 
 
 pub trait InitValue {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType;
+    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32, dims: &[i32]) -> InitRetType;
 }
 
 // only a single fixed value.
 // ConstExp ::= Exp
 impl ConstExp {
-    pub fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> InitRetType {
+    pub fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32) -> InitRetType {
         let ret_val = self.exp.eval(scope, size);
 
         assert!(ret_val.is_constant);
@@ -31,14 +31,14 @@ fn zero_padding(val: &mut Vec<(bool, i32)>, dims: &[i32]) {
         for t in dims { x = x * (*t as u32);}
         x
     };
-    for i in 0..len - (val.len() as u32) {
+    for _i in 0..len - (val.len() as u32) {
         val.push((true, 0));
     }
 }
 
 // ConstInitVal ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}"
 impl InitValue for ConstInitVal {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType {
+    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32, dims: &[i32]) -> InitRetType {
 
         match self {
             ConstInitVal::SingleExp(exp) => { // must have one element.
@@ -101,7 +101,7 @@ impl InitValue for ConstInitVal {
 
 // InitVal ::= Exp | "{" [InitVal {"," InitVal}] "}"
 impl InitValue for InitVal {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType {
+    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32, dims: &[i32]) -> InitRetType {
         match self {
             InitVal::SingleExp(exp) => { // must have one element.
                 let ret_val = exp.eval(scope, size);

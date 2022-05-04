@@ -1,7 +1,8 @@
-
-// pub const REGULAR_STATE: i32 = -1;
-// pub const RETURN_STATE: i32 = -2;
-// pub const JUMP_STATE: i32 = -3;
+pub const VOID: i32 = 0;
+pub const CONSTANT_INT: i32 = 1;
+pub const VARIABLE_INT: i32 = 2;
+pub const VARIABLE_ARRAY: i32 = 3;
+pub const PARAMETER_ARRAY: i32 = 4;
 
 
 // exp_res_id:

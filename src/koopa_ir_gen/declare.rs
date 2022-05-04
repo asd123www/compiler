@@ -1,12 +1,10 @@
 use crate::ast::*;
-use crate::koopa_ir_gen::DeclRetType;
 
 
 // use super::ret_types::*;
-use crate::koopa_ir_gen::get_name;
 use std::collections::HashMap;
 use crate::koopa_ir_gen::initialvalue::InitValue;
-
+use crate::koopa_ir_gen::{*};
 use super::ret_types::InitRetType;
 
 
@@ -171,7 +169,7 @@ impl DeclResult for ConstDef {
         if self.dims.len() == 0 { // `int` variable.
             assert!(ret_val.val.len() == 1);
             // the constant's value is the expression.
-            scope.insert(format!("{}", self.ident), (true, ret_val.val[0].1));
+            scope.insert(format!("{}", self.ident), (CONSTANT_INT, ret_val.val[0].1));
             return DeclRetType {size, program: ret_val.program, flag: 0};
         }
 
@@ -185,7 +183,8 @@ impl DeclResult for ConstDef {
         let mut program = "".to_string();
         let init_value_str = get_const_init_value_str(&ret_val, &dims);
 
-        scope.insert(format!("{}", self.ident), (false, size + 1));
+        // wrong???? 把常量数组当作变量数组.
+        scope.insert(format!("{}", self.ident), (VARIABLE_ARRAY, size + 1));
         if is_global {
             // global @x = alloc [i32, 2], {10, 20}
             program.push_str(&format!("global @var_{} = alloc {}, {}\n", size + 1, &dim_str, init_value_str));
@@ -214,7 +213,7 @@ impl DeclResult for VarDef {
                 
                 if dims.len() == 0 { // `int` variable.
                     // define.
-                    scope.insert(format!("{}", ident), (false, size + 1));
+                    scope.insert(format!("{}", ident), (VARIABLE_INT, size + 1));
                     if !is_global {
                         // @x = alloc i32
                         program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
@@ -225,7 +224,7 @@ impl DeclResult for VarDef {
                     return DeclRetType {size: size + 1, program, flag: 0};
                 }
 
-                scope.insert(format!("{}", ident), (false, size + 1));
+                scope.insert(format!("{}", ident), (VARIABLE_ARRAY, size + 1));
                 // array.
                 if is_global {
                     // global @x = alloc [i32, 2], {10, 20}
@@ -252,7 +251,7 @@ impl DeclResult for VarDef {
                     if !is_global {
                         program.push_str(&ret_val.program);
                         // define.
-                        scope.insert(format!("{}", ident), (false, size + 1));
+                        scope.insert(format!("{}", ident), (VARIABLE_INT, size + 1));
                         // @x = alloc i32
                         program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
                         // assignment: store %1, @x
@@ -260,7 +259,7 @@ impl DeclResult for VarDef {
                     } else {
                         assert!(ret_val.val[0].0 == true); // must be constant.
                         // define.
-                        scope.insert(format!("{}", ident), (false, size + 1));
+                        scope.insert(format!("{}", ident), (VARIABLE_INT, size + 1));
                         // @x = alloc i32
                         program.push_str(&format!("global @var_{} = alloc i32, {}\n", size + 1, ret_val.val[0].1)); // currently only i32.
                     }
@@ -271,7 +270,7 @@ impl DeclResult for VarDef {
                 let ret_val = initval.eval(scope, size, &dims);
                 let init_value_str = get_const_init_value_str(&ret_val, &dims);
 
-                scope.insert(format!("{}", ident), (false, size + 1));
+                scope.insert(format!("{}", ident), (VARIABLE_ARRAY, size + 1));
                 if is_global {
                     program.push_str(&format!("global @var_{} = alloc {}, {}\n", size + 1, &dim_str, init_value_str));
                 } else {
