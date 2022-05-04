@@ -4,14 +4,14 @@ use crate::ast::*;
 use super::{ret_types::InitRetType, expression::ExpResult};
 
 
-trait InitValue {
+pub trait InitValue {
     fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType;
 }
 
 // only a single fixed value.
 // ConstExp ::= Exp
-impl InitValue for ConstExp {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType {
+impl ConstExp {
+    pub fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> InitRetType {
         let ret_val = self.exp.eval(scope, size);
 
         assert!(ret_val.is_constant);
@@ -31,13 +31,7 @@ impl InitValue for ConstInitVal {
 
         match self {
             ConstInitVal::SingleExp(exp) => { // must have one element.
-                let ret_val = exp.eval(scope, size, &dims);
-                let length = dims[dims.len() - 1]; // the last dimension length.
-                assert!(length > 0);
-                while ret_val.val.len() % (length as usize) != 0 {
-                    ret_val.val.push((true, 0));
-                }
-
+                let ret_val = exp.eval(scope, size);
                 return ret_val;
             },
             ConstInitVal::ZeroInit() => { // we can contain no element.
@@ -67,7 +61,7 @@ impl InitValue for ConstInitVal {
                                     pd = pd * (dims[pos] as usize); // dims must be positive.
                                 }
                                 pos
-                            };
+                            }; assert!(pos != dims.len()); // must be multiple of last dimension.
 
                             ret_val = ele.eval(scope, size, &dims[pos..dims.len()]);
                         }
@@ -91,23 +85,13 @@ impl InitValue for ConstInitVal {
 // InitVal ::= Exp | "{" [InitVal {"," InitVal}] "}"
 impl InitValue for InitVal {
     fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType {
-        // let ret_val = exp.eval(scope, size, &dims);
-        // let length = dims[dims.len() - 1]; // the last dimension length.
-        // while ret_val.val.len() % (length as usize) != 0 {
-        //     ret_val.val.push((true, 0));
-        // }
 
         match self {
             InitVal::SingleExp(exp) => { // must have one element.
                 let ret_val = exp.eval(scope, size);
                 let mut val = Vec::<(bool, i32)>::new();
-                let length = dims[dims.len() - 1]; // the last dimension length.
-                assert!(length > 0);
 
                 val.push((ret_val.is_constant, ret_val.exp_res_id));
-                while val.len() % (length as usize) != 0 {
-                    val.push((true, 0));
-                }
 
                 return InitRetType {
                     size: ret_val.size,
@@ -144,7 +128,7 @@ impl InitValue for InitVal {
                                     pd = pd * (dims[pos] as usize); // dims must be positive.
                                 }
                                 pos
-                            };
+                            }; assert!(pos != dims.len()); // must be multiple of last dimension.
 
                             ret_val = ele.eval(scope, size, &dims[pos..dims.len()]);
                         }
