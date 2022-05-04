@@ -34,11 +34,19 @@ impl ExpResult for LVal {
 
         // %2 = load @x
         let mut pos = var.1; // the position.
+        let mut is_first = true;
         for exp in &self.exps {
             let ret_val = exp.eval(scope, size);
             size = ret_val.size;
             program.push_str(&ret_val.program); // code for evaluation.
-            program.push_str(&format!("    %var_{} = getelemptr @var_{}, {}\n", size + 1, pos, get_name(ret_val.exp_res_id, ret_val.is_constant)));
+
+            let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
+            if is_first { // `array point` begin with @, but variable begin with `%`.
+                is_first = false;
+                program.push_str(&format!("    %var_{} = getelemptr @var_{}, {}\n", size + 1, pos, name));
+            } else {
+                program.push_str(&format!("    %var_{} = getelemptr %var_{}, {}\n", size + 1, pos, name));
+            }
             size += 1;
             pos = size;
         }
@@ -89,11 +97,16 @@ impl ExpResult for PrimaryExp {
             }
             PrimaryExp::Lval(lval) => {
                 let ret_val = lval.eval(scope, size);
+                size = ret_val.size;
                 if ret_val.is_constant {
                     return ret_val;
                 } else {
                     program.push_str(&ret_val.program);
-                    program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, ret_val.exp_res_id));
+                    if lval.exps.len() == 0 {
+                        program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, ret_val.exp_res_id));
+                    } else {
+                        program.push_str(&format!("    %var_{} = load %var_{}\n", size + 1, ret_val.exp_res_id));
+                    }
                 }
                 return ExpRetType {
                     size: size + 1,

@@ -169,9 +169,15 @@ impl Stmt {
                 assert!(var.is_constant == false); // must be variable.
                 program.push_str(&var.program);
                 program.push_str(&ret_val.program);
-                // store %1, @x
-                program.push_str(&format!("    store {}, @var_{}\n", name, var.exp_res_id));
-                
+
+                if lval.exps.len() == 0 {
+                    // store %1, @x
+                    program.push_str(&format!("    store {}, @var_{}\n", name, var.exp_res_id));
+                } else {
+                    // store %1, @x
+                    program.push_str(&format!("    store {}, %var_{}\n", name, var.exp_res_id));
+                }
+
                 return ExpRetType {
                     size: size,
                     program: program,

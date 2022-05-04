@@ -10,18 +10,95 @@ decl @stoptime()
 
 
 
-global @var_9 = alloc [i32, 5], zeroinit
+global @var_9 = alloc [i32, 10], zeroinit
+global @var_26 = alloc [[i32, 3], 2], {{5, 6, 7}, {8, 0, 0}}
 
 
 fun @main(): i32 {
-%entry_11:
-    @var_20 = alloc [i32, 5]
-    store {1, 0, 0, 0, 0}, @var_20
-    %var_29 = getelemptr @var_20, 0
-    %var_21 = load @var_29
-    ret %var_21
 
-%entry_29:
+%entry_28:
+    @var_37 = alloc [i32, 10]
+    @var_54 = alloc [[i32, 3], 2]
+    store {{1, 2, 3}, {4, 0, 0}}, @var_54
+    @var_64 = alloc i32
+    store 0, @var_64
+    @var_74 = alloc i32
+    store 0, @var_74
+    jump %entry_154
+
+%entry_154:
+    %var_75 = load @var_74
+    %var_84 = lt %var_75, 2
+    br %var_84, %entry_155, %entry_156
+
+%entry_155:
+    @var_97 = alloc i32
+    store 0, @var_97
+    jump %entry_139
+
+%entry_139:
+    %var_98 = load @var_97
+    %var_107 = lt %var_98, 3
+    br %var_107, %entry_140, %entry_141
+
+%entry_140:
+    %var_111 = load @var_64
+    %var_115 = load @var_74
+    %var_123 = getelemptr @var_54, %var_115
+    %var_124 = load @var_97
+    %var_132 = getelemptr %var_123, %var_124
+    %var_115 = load %var_132
+    %var_118 = add %var_111, %var_115
+    %var_119 = load @var_74
+    %var_127 = getelemptr @var_26, %var_119
+    %var_128 = load @var_97
+    %var_136 = getelemptr %var_127, %var_128
+    %var_119 = load %var_136
+    %var_122 = add %var_118, %var_119
+    store %var_122, @var_64
+    %var_127 = load @var_97
+    %var_134 = add %var_127, 1
+    store %var_134, @var_97
+    jump %entry_139
+
+%entry_141:
+    %var_142 = load @var_74
+    %var_149 = add %var_142, 1
+    store %var_149, @var_74
+    jump %entry_154
+
+%entry_156:
+    store 0, @var_74
+    jump %entry_232
+
+%entry_232:
+    %var_165 = load @var_74
+    %var_174 = lt %var_165, 10
+    br %var_174, %entry_233, %entry_234
+
+%entry_233:
+    %var_178 = load @var_74
+    %var_186 = getelemptr @var_37, %var_178
+    %var_187 = load @var_64
+    %var_191 = load @var_74
+    %var_194 = add %var_187, %var_191
+    store %var_194, %var_186
+    %var_199 = load @var_74
+    %var_207 = getelemptr @var_9, %var_199
+    %var_208 = load @var_64
+    %var_212 = load @var_74
+    %var_215 = add %var_208, %var_212
+    store %var_215, %var_207
+    %var_220 = load @var_74
+    %var_227 = add %var_220, 1
+    store %var_227, @var_74
+    jump %entry_232
+
+%entry_234:
+    %var_235 = load @var_64
+    ret %var_235
+
+%entry_243:
     ret 0
 }
 
