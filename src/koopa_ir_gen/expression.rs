@@ -13,35 +13,6 @@ pub trait ExpResult {
 }
 
 
-// --------------------------------------- lv4 ------------------------------------------------
-
-// ConstInitVal ::= ConstExp;
-impl ExpResult for ConstInitVal {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
-        let ret_val = self.constexp.eval(scope, size);
-        return ret_val;
-    }
-}
-
-// ConstExp ::= Exp;
-impl ExpResult for ConstExp {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
-        let ret_val = self.exp.eval(scope, size);
-        return ret_val;
-    }
-}
-
-// InitVal ::= Exp;
-impl ExpResult for InitVal {
-    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
-        let ret_val = self.exp.eval(scope, size);
-        return ret_val;
-    }
-}
-
-
-
-
 // --------------------------------------- lv3 ------------------------------------------------
 
 // Exp ::= LOrExp;

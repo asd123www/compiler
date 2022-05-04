@@ -59,3 +59,9 @@ Therefore I assume it's value is fixed, not in run-time.
 
     See the LALRPOP manual for advice on making your grammar LR(1).
 ```
+
+
+### Constant Array
+We don't have to evaluate it during compiling!
+
+Just treat it as an ordinary array.

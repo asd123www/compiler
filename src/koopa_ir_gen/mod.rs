@@ -2,6 +2,7 @@ mod ret_types;
 mod expression;
 mod declare;
 mod statement;
+mod initialvalue;
 
 use ret_types::*;
 use crate::ast::*;
@@ -93,12 +94,19 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
                         // %x = alloc i32
                         // store @x, %x
                         // we only have i32, hhhh.
-                        size += 1;
-                        load_params.push_str(&format!("    @var_{} = alloc i32\n", size));
-                        load_params.push_str(&format!("    store @{}, @var_{}\n", x.ident , size));
-
-                        // add parameter to scope. And parameter is variable.
-                        scope.insert(format!("{}", x.ident), (false, size));
+                        match x {
+                            FuncFParam::Integer(v) => {
+                                size += 1;
+                                load_params.push_str(&format!("    @var_{} = alloc i32\n", size));
+                                load_params.push_str(&format!("    store @{}, @var_{}\n", v , size));
+        
+                                // add parameter to scope. And parameter is variable.
+                                scope.insert(format!("{}", v), (false, size));
+                            },
+                            FuncFParam::Array(ident, dims) => {
+                                // wrong!!!
+                            },
+                        }
                     }
                     let param_val = dfs(TreePoint::FuncFParams(v), &scope, size);
                     program.push_str(&param_val.program);
@@ -149,11 +157,18 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
         TreePoint::FuncFParams(node) => {
             let mut is_first = true;
             for x in &node.params {
-                // maybe pointer in the future????
-                if is_first {
-                    program.push_str(&format!("@{}: i32", x.ident));
-                } else {
-                    program.push_str(&format!(", @{}: i32", x.ident));
+                // maybe pointer in the future????  yes.
+                match x {
+                    FuncFParam::Integer(ident) => {
+                        if is_first {
+                            program.push_str(&format!("@{}: i32", ident));
+                        } else {
+                            program.push_str(&format!(", @{}: i32", ident));
+                        }
+                    }
+                    FuncFParam::Array(ident, dims) => {
+                        // wrong!!!
+                    }
                 }
                 is_first = false;
             }

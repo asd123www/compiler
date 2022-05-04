@@ -80,7 +80,9 @@ impl DeclResult for VarDecl {
 }
 
 
-// ConstDef ::= IDENT "=" ConstInitVal;
+// ConstDef ::= IDENT "=" ConstInitVal;    old one.
+// ConstDef ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal
+// wrong!!!
 impl DeclResult for ConstDef {
     fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let ret_val = self.constinitval.eval(scope, size);

@@ -65,8 +65,8 @@ FuncFParams: FuncFParams = {
 
 // FuncFParam ::= BType IDENT ["[" "]" {"[" ConstExp "]"}]
 FuncFParam: FuncFParam = {
-    "int" <ident: Ident> => FuncFParam::Integer{ident},
-    "int" <ident: Ident> "[" "]" <mut dims: ("[" <ConstExp> "]")*> => FuncFParam::Array{ident, dims},
+    "int" <ident: Ident> => FuncFParam::Integer(ident),
+    "int" <ident: Ident> "[" "]" <mut dims: ("[" <ConstExp> "]")*> => FuncFParam::Array(ident, dims),
 }
 
 
