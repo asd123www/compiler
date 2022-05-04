@@ -11,12 +11,12 @@ use super::ret_types::InitRetType;
 
 
 pub trait DeclResult {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType;
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType;
 }
 
 
 impl DeclResult for BlockItem {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType {
         // BlockItem ::= Decl | Stmt;
         match self {
             BlockItem::Statement(stmt) => {
@@ -37,7 +37,7 @@ impl DeclResult for BlockItem {
 
 // Decl ::= ConstDecl | VarDecl;
 impl DeclResult for Decl {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType {
         match self {
             Decl::Constdecl(constdecl) => {
                 let ret_val = constdecl.eval(scope, size, is_global);
@@ -53,7 +53,7 @@ impl DeclResult for Decl {
 
 // ConstDecl ::= "const" BType ConstDef {"," ConstDef} ";";
 impl DeclResult for ConstDecl {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
 
@@ -68,7 +68,7 @@ impl DeclResult for ConstDecl {
 
 // VarDecl ::= BType VarDef {"," VarDef} ";";
 impl DeclResult for VarDecl {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
 
@@ -85,7 +85,7 @@ impl DeclResult for VarDecl {
 
 
 // calculate a list of `ConstExp`.
-fn evaluate_dimension(size: &mut i32, exps: & Vec<ConstExp>, scope: &HashMap<String, (bool, i32)>) -> (Vec<i32>, String) {
+pub fn evaluate_dimension(size: &mut i32, exps: & Vec<ConstExp>, scope: &HashMap<String, (i32, i32)>) -> (Vec<i32>, String) {
     let mut dims = Vec::new();
     let mut is_first = true;
     let mut program = "".to_string();
@@ -159,7 +159,7 @@ fn get_const_init_value_str(p: &InitRetType, dims: &Vec<i32>) -> String {
 
 // ConstDef ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal
 impl DeclResult for ConstDef {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
         let dim_pair = evaluate_dimension(&mut size, &self.dims, scope);
         let dims = dim_pair.0;
@@ -202,7 +202,7 @@ impl DeclResult for ConstDef {
 // VarDef ::= IDENT {"[" ConstExp "]"}
 //          | IDENT {"[" ConstExp "]"} "=" InitVal
 impl DeclResult for VarDef {
-    fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
+    fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
         let mut program = "".to_string();
 

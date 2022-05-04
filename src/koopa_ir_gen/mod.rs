@@ -9,7 +9,7 @@ use crate::ast::*;
 use core::{panic};
 use std::{collections::HashMap};
 use crate::koopa_ir_gen::declare::DeclResult;
-
+use crate::koopa_ir_gen::declare::evaluate_dimension;
 // use self::expression::ExpResult;
 
 
@@ -95,16 +95,26 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
                         // store @x, %x
                         // we only have i32, hhhh.
                         match x {
-                            FuncFParam::Integer(v) => {
+                            FuncFParam::Integer(ident) => {
                                 size += 1;
                                 load_params.push_str(&format!("    @var_{} = alloc i32\n", size));
-                                load_params.push_str(&format!("    store @{}, @var_{}\n", v , size));
+                                load_params.push_str(&format!("    store @{}, @var_{}\n", ident , size));
         
                                 // add parameter to scope. And parameter is variable.
-                                scope.insert(format!("{}", v), (false, size));
+                                scope.insert(format!("{}", ident), (false, size));
                             },
                             FuncFParam::Array(ident, dims) => {
-                                // wrong!!!
+                                size += 1;
+                                let dim_pair = evaluate_dimension(&mut size, &dims, &scope);
+                                if dims.len() == 0 {
+                                    load_params.push_str(&format!("    @var_{} = alloc *i32\n", size));
+                                } else {
+                                    load_params.push_str(&format!("    @var_{} = alloc *{}\n", size, dim_pair.1));
+                                }
+                                load_params.push_str(&format!("    store @{}, @var_{}\n", ident, size));
+
+                                // wrong!!! 如何区分参数到底是数组还是数字?
+                                scope.insert(format!("{}", ident), (false, size));
                             },
                         }
                     }
@@ -154,6 +164,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
             };
         },
 
+        // generate parameter.
         TreePoint::FuncFParams(node) => {
             let mut is_first = true;
             for x in &node.params {
@@ -167,7 +178,20 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (bool, i32)>, size: i32) -> BodyRetT
                         }
                     }
                     FuncFParam::Array(ident, dims) => {
-                        // wrong!!!
+                        let dim_pair = evaluate_dimension(&mut size, &dims, &scope);
+                        if dims.len() == 0 { // zero special judge.
+                            if is_first {
+                                program.push_str(&format!("@{}: *i32", ident));
+                            } else {
+                                program.push_str(&format!(", @{}: *i32", ident));
+                            }
+                        } else {
+                            if is_first {
+                                program.push_str(&format!("@{}: *{}", ident, dim_pair.1));
+                            } else {
+                                program.push_str(&format!(", @{}: *{}", ident, dim_pair.1));
+                            }
+                        }
                     }
                 }
                 is_first = false;

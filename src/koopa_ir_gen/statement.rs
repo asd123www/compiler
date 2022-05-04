@@ -159,7 +159,6 @@ impl Stmt {
         let mut program = "".to_string();
         match self {
             Stmt::LvalExp(lval, exp) => {
-                // wrong!
                 // query the scope to find variable id, and change it.
                 let var = lval.eval(scope, size);
                 let ret_val = exp.eval(scope, var.size);
