@@ -4,9 +4,10 @@ use crate::koopa_ir_gen::DeclRetType;
 
 // use super::ret_types::*;
 use crate::koopa_ir_gen::get_name;
-use core::panic;
 use std::collections::HashMap;
 use crate::koopa_ir_gen::initialvalue::InitValue;
+
+use super::ret_types::InitRetType;
 
 
 pub trait DeclResult {
@@ -84,8 +85,11 @@ impl DeclResult for VarDecl {
 
 
 // calculate a list of `ConstExp`.
-fn evaluate_dimension(size: &mut i32, exps: & Vec<ConstExp>, scope: &HashMap<String, (bool, i32)>) -> Vec<i32> {
+fn evaluate_dimension(size: &mut i32, exps: & Vec<ConstExp>, scope: &HashMap<String, (bool, i32)>) -> (Vec<i32>, String) {
     let mut dims = Vec::new();
+    let mut is_first = true;
+    let mut program = "".to_string();
+
     for const_exp in exps {
         let ret_val = const_exp.eval(scope, *size);
         *size = ret_val.size;
@@ -94,15 +98,72 @@ fn evaluate_dimension(size: &mut i32, exps: & Vec<ConstExp>, scope: &HashMap<Str
         assert!(ret_val.val[0].0); // must be constant.
         dims.push(ret_val.val[0].1); // add length of this dimension.
     }
-    dims
+    for x in dims.iter().rev() { // the order is reversed.
+        if is_first {
+            program = format!("[i32, {}]", x);
+        } else {
+            program = format!("[{}, {}]", program, x);
+        }
+        is_first = false;
+    }
+    (dims, program)
 }
+
+
+
+
+
+// pub struct InitRetType {
+//     pub size: i32,
+//     pub program: String,
+//     pub is_allzero: bool,
+//     pub val: Vec<(bool, i32)>,
+// }
+
+fn get_const_init_value_str(p: &InitRetType, dims: &Vec<i32>) -> String {
+    if p.is_allzero {
+        return "zeroinit".to_string();
+    }
+
+    fn dfs(i: usize, l: usize, r: usize, p: &InitRetType, dims: &Vec<i32>) -> String {
+        // println!("index: {}, left: {}, right: {}\n", i, l, r);
+        if l == r {
+            assert!(p.val[l].0);
+            return format!("{}", p.val[l].1);
+        }
+        let len = (r - l + 1) / (dims[i] as usize);
+        let mut program = "".to_string();
+        let mut is_first = true;
+        for j in 0..dims[i] {
+            let x = dfs(i + 1, l + (j as usize) * len, l + (j as usize) * len + len - 1, p, dims);
+            if is_first {
+                program.push('{');
+                program.push_str(&format!("{}", x));
+                is_first = false;
+            } else {
+                program.push_str(&format!(", {}", x));
+            }
+        }
+        program.push('}');
+
+        program
+    }
+
+    dfs(0, 0, p.val.len() - 1, p, dims)
+}
+
+// fn array_init(dims: &Vec<i32>, is_global: bool) {
+
+// }
 
 
 // ConstDef ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal
 impl DeclResult for ConstDef {
     fn eval(&self, scope: &mut HashMap<String, (bool, i32)>, size: i32, is_global: bool) -> DeclRetType {
         let mut size = size;
-        let dims = evaluate_dimension(&mut size, &self.dims, scope);
+        let dim_pair = evaluate_dimension(&mut size, &self.dims, scope);
+        let dims = dim_pair.0;
+        let dim_str = dim_pair.1;
 
         let ret_val = self.constinitval.eval(scope, size, &dims[0..dims.len()]);
         let size = ret_val.size;
@@ -114,8 +175,27 @@ impl DeclResult for ConstDef {
             return DeclRetType {size, program: ret_val.program, flag: 0};
         }
 
-        // array. 
-        panic!("fuck");
+        // array.
+        // array_init(&dims, is_global);
+
+        // @arr = alloc [[i32, 3], 2]    // @arr 的类型是 *[[i32, 3], 2]
+        // %ptr1 = getelemptr @arr, 1    // %ptr1 的类型是 *[i32, 3]
+        // %ptr2 = getelemptr %ptr1, 2   // %ptr2 的类型是 *i32
+        // %value = load %ptr2           // %value 的类型是 i32
+        let mut program = "".to_string();
+        let init_value_str = get_const_init_value_str(&ret_val, &dims);
+
+        scope.insert(format!("{}", self.ident), (false, size + 1));
+        if is_global {
+            // global @x = alloc [i32, 2], {10, 20}
+            program.push_str(&format!("global @var_{} = alloc {}, {}\n", size + 1, &dim_str, init_value_str));
+        } else {
+            // @arr = alloc [i32, 5]
+            // store {1, 2, 3, 0, 0}, @arr
+            program.push_str(&format!("    @var_{} = alloc {}\n", size + 1, &dim_str));
+            program.push_str(&format!("    store {}, @var_{}\n", init_value_str, size + 1));
+        }
+        return DeclRetType {size: size + 1, program: program, flag: 0};
     }
 }
 
@@ -128,8 +208,10 @@ impl DeclResult for VarDef {
 
         match self {
             VarDef::Ident(ident, dims) => {
-                let dims = evaluate_dimension(&mut size, dims, scope);
-
+                let dim_pair = evaluate_dimension(&mut size, dims, scope);
+                let dims = dim_pair.0;
+                let dim_str = dim_pair.1;
+                
                 if dims.len() == 0 { // `int` variable.
                     // define.
                     scope.insert(format!("{}", ident), (false, size + 1));
@@ -143,11 +225,23 @@ impl DeclResult for VarDef {
                     return DeclRetType {size: size + 1, program, flag: 0};
                 }
 
-                // array. 
-                panic!("fuck");
+                scope.insert(format!("{}", ident), (false, size + 1));
+                // array.
+                if is_global {
+                    // global @x = alloc [i32, 2], {10, 20}
+                    program.push_str(&format!("global @var_{} = alloc {}, zeroinit\n", size + 1, &dim_str));
+                } else {
+                    // @arr = alloc [i32, 5]
+                    // store {1, 2, 3, 0, 0}, @arr
+                    program.push_str(&format!("    @var_{} = alloc {}\n", size + 1, &dim_str));
+                }
+                return DeclRetType {size: size + 1, program, flag: 0};
             },
+
             VarDef::Identinitval(ident, dims, initval) => {
-                let dims = evaluate_dimension(&mut size, dims, scope);
+                let dim_pair = evaluate_dimension(&mut size, dims, scope);
+                let dims = dim_pair.0;
+                let dim_str = dim_pair.1;
 
                 if dims.len() == 0 {
                     let ret_val = initval.eval(scope, size, &[1]);
@@ -173,8 +267,19 @@ impl DeclResult for VarDef {
                     return DeclRetType {size: size + 1, program, flag: 0};
                 }
 
-                // array. 
-                panic!("fuck");
+                // array.
+                let ret_val = initval.eval(scope, size, &dims);
+                let init_value_str = get_const_init_value_str(&ret_val, &dims);
+
+                scope.insert(format!("{}", ident), (false, size + 1));
+                if is_global {
+                    program.push_str(&format!("global @var_{} = alloc {}, {}\n", size + 1, &dim_str, init_value_str));
+                } else {
+                    program.push_str(&format!("    @var_{} = alloc {}\n", size + 1, &dim_str));
+                    program.push_str(&format!("    store {}, @var_{}\n", init_value_str, size + 1));
+                }
+
+                return DeclRetType {size: size + 1, program, flag: 0};
             },
         }
     }

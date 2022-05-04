@@ -10,20 +10,18 @@ decl @stoptime()
 
 
 
+global @var_9 = alloc [i32, 5], zeroinit
 
 
 fun @main(): i32 {
+%entry_11:
+    @var_20 = alloc [i32, 5]
+    store {1, 0, 0, 0, 0}, @var_20
+    %var_29 = getelemptr @var_20, 0
+    %var_21 = load @var_29
+    ret %var_21
 
-%entry_2:
-    @var_3 = alloc i32
-    store 10, @var_3
-    %var_4 = load @var_3
-    %var_11 = add %var_4, 1
-    @var_4 = alloc i32
-    store %var_11, @var_4
-    ret 0
-
-%entry_13:
+%entry_29:
     ret 0
 }
 

@@ -66,7 +66,7 @@ FuncFParams: FuncFParams = {
 // FuncFParam ::= BType IDENT ["[" "]" {"[" ConstExp "]"}]
 FuncFParam: FuncFParam = {
     "int" <ident: Ident> => FuncFParam::Integer(ident),
-    "int" <ident: Ident> "[" "]" <mut dims: ("[" <ConstExp> "]")*> => FuncFParam::Array(ident, dims),
+    "int" <ident: Ident> "[" "]" <dims: ("[" <ConstExp> "]")*> => FuncFParam::Array(ident, dims),
 }
 
 
@@ -74,7 +74,7 @@ FuncFParam: FuncFParam = {
 
 // Block         ::= "{" {BlockItem} "}";
 Block: Block = {
-    "{" <mut items: (<BlockItem>)*> "}" => Block {items},   
+    "{" <items: (<BlockItem>)*> "}" => Block {items},   
 }
 
 // BlockItem     ::= Decl | Statement;
@@ -137,7 +137,7 @@ Stmt: Stmt = {
 
 // LVal ::= IDENT {"[" Exp "]"}
 LVal: LVal = {
-    <ident: Ident> <mut exps: ("[" <Exp> "]")*> => LVal {ident, exps}, 
+    <ident: Ident> <exps: ("[" <Exp> "]")*> => LVal {ident, exps}, 
 }
 
 // Decl          ::= ConstDecl | VarDecl;
@@ -167,15 +167,15 @@ VarDecl: VarDecl = {
 
 // ConstDef      ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal;
 ConstDef: ConstDef = {
-    <ident: Ident>  <mut dims: ("[" <ConstExp> "]")*>  "=" <constinitval: ConstInitVal> => 
+    <ident: Ident>  <dims: ("[" <ConstExp> "]")*>  "=" <constinitval: ConstInitVal> => 
             ConstDef{ident, dims, constinitval},
 }
 
 // VarDef ::= IDENT {"[" ConstExp "]"}
 //      | IDENT {"[" ConstExp "]"} "=" InitVal;
 VarDef: VarDef = {
-    <ident: Ident> <mut dims: ("[" <ConstExp> "]")*> => VarDef::Ident(ident, dims),
-    <ident: Ident> <mut dims: ("[" <ConstExp> "]")*> "=" <initval: InitVal> => VarDef::Identinitval(ident, dims, initval),
+    <ident: Ident> <dims: ("[" <ConstExp> "]")*> => VarDef::Ident(ident, dims),
+    <ident: Ident> <dims: ("[" <ConstExp> "]")*> "=" <initval: InitVal> => VarDef::Identinitval(ident, dims, initval),
 }
 
 

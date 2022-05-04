@@ -159,17 +159,19 @@ impl Stmt {
         let mut program = "".to_string();
         match self {
             Stmt::LvalExp(lval, exp) => {
+                // wrong!
                 // query the scope to find variable id, and change it.
-                let id = scope.get(&lval.ident).unwrap();
-                let ret_val = exp.eval(scope, size);
+                let var = lval.eval(scope, size);
+                let ret_val = exp.eval(scope, var.size);
                 let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
                 size = ret_val.size;
-                
-                assert!(id.0 == false); // must be variable.
+
+                assert!(var.is_constant == false); // must be variable.
+                program.push_str(&var.program);
                 program.push_str(&ret_val.program);
                 // store %1, @x
-                program.push_str(&format!("    store {}, @var_{}\n", name, id.1));
-
+                program.push_str(&format!("    store {}, @var_{}\n", name, var.exp_res_id));
+                
                 return ExpRetType {
                     size: size,
                     program: program,

@@ -1,5 +1,6 @@
+int arr[5];
+
 int main() {
-  int x = 10;
-  int y = x + 1;
-  return 0;
+  int arr[5] = {1};
+  return arr[0];
 }

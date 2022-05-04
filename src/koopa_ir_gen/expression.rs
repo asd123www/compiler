@@ -15,6 +15,43 @@ pub trait ExpResult {
 
 // --------------------------------------- lv3 ------------------------------------------------
 
+impl ExpResult for LVal {
+    fn eval(&self, scope: &HashMap<String, (bool, i32)>, size: i32) -> ExpRetType {
+        // wrong!!
+        let mut size = size;
+        let mut program = String::from("");
+
+        let var = scope.get(&format!("{}", self.ident)).unwrap();
+
+        if var.0 { // constant variable.
+            return ExpRetType {
+                size: size,
+                program: program,
+                exp_res_id: var.1,
+                is_constant: true,
+            };
+        }
+
+        // %2 = load @x
+        let mut pos = var.1; // the position.
+        for exp in &self.exps {
+            let ret_val = exp.eval(scope, size);
+            size = ret_val.size;
+            program.push_str(&ret_val.program); // code for evaluation.
+            program.push_str(&format!("    %var_{} = getelemptr @var_{}, {}\n", size + 1, pos, get_name(ret_val.exp_res_id, ret_val.is_constant)));
+            size += 1;
+            pos = size;
+        }
+
+        return ExpRetType {
+            size: size,
+            program: program,
+            exp_res_id: pos,
+            is_constant: false,
+        };
+    }
+}
+
 // Exp ::= LOrExp;
 impl ExpResult for Exp {
     fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
@@ -26,6 +63,7 @@ impl ExpResult for Exp {
 // PrimaryExp ::= "(" Exp ")" | LVal | Number;
 impl ExpResult for PrimaryExp {
     fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32) -> ExpRetType {
+        let mut size = size;
         let mut program = String::from("");
         match self {
             PrimaryExp::Exp(exp) => {
@@ -50,19 +88,13 @@ impl ExpResult for PrimaryExp {
                 };
             }
             PrimaryExp::Lval(lval) => {
-                let var = scope.get(&format!("{}", lval.ident)).unwrap();
-
-                if var.0 { // constant variable.
-                    return ExpRetType {
-                        size: size,
-                        program: program,
-                        exp_res_id: var.1,
-                        is_constant: true, // high bits is value.
-                    };
+                let ret_val = lval.eval(scope, size);
+                if ret_val.is_constant {
+                    return ret_val;
+                } else {
+                    program.push_str(&ret_val.program);
+                    program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, ret_val.exp_res_id));
                 }
-
-                // %2 = load @x
-                program.push_str(&format!("    %var_{} = load @var_{}\n", size + 1, var.1));
                 return ExpRetType {
                     size: size + 1,
                     program: program,

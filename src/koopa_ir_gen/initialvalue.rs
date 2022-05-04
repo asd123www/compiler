@@ -25,6 +25,17 @@ impl ConstExp {
     }
 }
 
+fn zero_padding(val: &mut Vec<(bool, i32)>, dims: &[i32]) {
+    let len = {
+        let mut x:u32 = 1;
+        for t in dims { x = x * (*t as u32);}
+        x
+    };
+    for i in 0..len - (val.len() as u32) {
+        val.push((true, 0));
+    }
+}
+
 // ConstInitVal ::= ConstExp | "{" [ConstInitVal {"," ConstInitVal}] "}"
 impl InitValue for ConstInitVal {
     fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType {
@@ -50,17 +61,22 @@ impl InitValue for ConstInitVal {
                     let mut ret_val;
                     match ele {
                         ConstInitVal::SingleExp(_) => { // if it is a single, then multiple of last dimension.
-                            ret_val = ele.eval(scope, size, &dims[dims.len()-1..dims.len()]);
+                            ret_val = ele.eval(scope, size, &[0]);
                         },
                         _ => {
                             let pos = {
-                                let mut pd = 1;
-                                let mut pos = dims.len();
-                                while val.len() % pd == 0 {
-                                    pos -= 1;
-                                    pd = pd * (dims[pos] as usize); // dims must be positive.
+                                if val.len() == 0 {
+                                    dims.len() - 1
+                                } else {
+                                    let mut pd = 1;
+                                    let mut pos = dims.len();
+                                    while val.len() % pd == 0 {
+                                        // println!("gogogo  {} {}", pd, pos);
+                                        pos -= 1;
+                                        pd = pd * (dims[pos] as usize); // dims must be positive.
+                                    }
+                                    pos + 1
                                 }
-                                pos
                             }; assert!(pos != dims.len()); // must be multiple of last dimension.
 
                             ret_val = ele.eval(scope, size, &dims[pos..dims.len()]);
@@ -70,6 +86,7 @@ impl InitValue for ConstInitVal {
                     size = ret_val.size;
                     // we don't have to care about the program cause it's constant.
                 }
+                zero_padding(&mut val, dims);
 
                 return InitRetType {
                     size: size,
@@ -85,7 +102,6 @@ impl InitValue for ConstInitVal {
 // InitVal ::= Exp | "{" [InitVal {"," InitVal}] "}"
 impl InitValue for InitVal {
     fn eval(&self, scope: &HashMap<String, (bool, i32)>, size:i32, dims: &[i32]) -> InitRetType {
-
         match self {
             InitVal::SingleExp(exp) => { // must have one element.
                 let ret_val = exp.eval(scope, size);
@@ -121,13 +137,17 @@ impl InitValue for InitVal {
                         },
                         _ => {
                             let pos = {
-                                let mut pd = 1;
-                                let mut pos = dims.len();
-                                while val.len() % pd == 0 {
-                                    pos -= 1;
-                                    pd = pd * (dims[pos] as usize); // dims must be positive.
+                                if val.len() == 0 {
+                                    dims.len() - 1
+                                } else {
+                                    let mut pd = 1;
+                                    let mut pos = dims.len();
+                                    while val.len() % pd == 0 {
+                                        pos -= 1;
+                                        pd = pd * (dims[pos] as usize); // dims must be positive.
+                                    }
+                                    pos + 1
                                 }
-                                pos
                             }; assert!(pos != dims.len()); // must be multiple of last dimension.
 
                             ret_val = ele.eval(scope, size, &dims[pos..dims.len()]);
@@ -137,6 +157,7 @@ impl InitValue for InitVal {
                     size = ret_val.size;
                     program.push_str(&ret_val.program);
                 }
+                zero_padding(&mut val, dims);
 
                 return InitRetType {
                     size: size,
