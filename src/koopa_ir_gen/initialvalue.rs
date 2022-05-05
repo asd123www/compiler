@@ -64,6 +64,9 @@ impl InitValue for ConstInitVal {
                             ret_val = ele.eval(scope, size, &[0]);
                         },
                         _ => {
+                            while val.len() % (dims[dims.len() - 1] as usize) != 0 {
+                                val.push((true, 0));
+                            }
                             let pos = {
                                 if val.len() == 0 {
                                     dims.len() - 1
@@ -136,6 +139,9 @@ impl InitValue for InitVal {
                             ret_val = ele.eval(scope, size, &dims[dims.len()-1..dims.len()]);
                         },
                         _ => {
+                            while val.len() % (dims[dims.len() - 1] as usize) != 0 {
+                                val.push((true, 0));
+                            }
                             let pos = {
                                 if val.len() == 0 {
                                     dims.len() - 1
