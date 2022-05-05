@@ -64,7 +64,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (i32, i32)>, size: i32) -> BodyRetTy
         TreePoint::CompUnit(node) => {
             fn insert_function(scope: &mut HashMap<String, (i32, i32)>, func_def: &FuncDef, bitset: i32) {
                 // insert the function definition.
-                println!("insert: {}\n", &func_def.ident);
+                // println!("insert: {}\n", &func_def.ident);
                 match func_def.func_type {
                     0 => { // int
                         scope.insert(format!("{}_function", &func_def.ident), (VARIABLE_INT | (bitset << TYPE_BITS), 0));

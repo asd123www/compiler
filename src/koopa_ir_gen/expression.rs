@@ -14,7 +14,7 @@ pub trait ExpResult {
 // --------------------------------------- lv3 ------------------------------------------------
 // LVal          ::= IDENT {"[" Exp "]"};
 impl ExpResult for LVal {
-    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32, is_pt: bool) -> ExpRetType {
+    fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32, _is_pt: bool) -> ExpRetType {
         let mut size = size;
         let mut program = String::from("");
 
@@ -170,7 +170,7 @@ impl ExpResult for UnaryExp {
             UnaryExp::Funcall(ident, params) => {
                 // %0 = call @half(10)
                 // is it return type `void` or `int`?
-                println!("query: {}_function\n", &ident);
+                // println!("query: {}_function\n", &ident);
                 let is_void = scope.get(&format!("{}_function", &ident)).unwrap();
                 let mut bitset = is_void.0 >> TYPE_BITS; // get the function bits.
 

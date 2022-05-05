@@ -10,14 +10,219 @@ decl @stoptime()
 
 
 
+global @var_17 = alloc [[i32, 100], 2], zeroinit
+
+
+fun @merge_sort(@l: i32, @r: i32) {
+
+%entry_21:
+    @var_18 = alloc i32
+    store @l, @var_18
+    @var_19 = alloc i32
+    store @r, @var_19
+    %var_22 = load @var_18
+    %var_29 = add %var_22, 1
+    %var_31 = load @var_19
+    %var_35 = ge %var_29, %var_31
+    br %var_35, %entry_40, %entry_41
+
+%entry_40:
+    ret 
+
+%entry_39:
+    jump %entry_41
+
+%entry_41:
+    %var_42 = load @var_18
+    %var_46 = load @var_19
+    %var_49 = add %var_42, %var_46
+    %var_59 = div %var_49, 2
+    @var_66 = alloc i32
+    store %var_59, @var_66
+    %var_67 = load @var_18
+    %var_75 = load @var_66
+    call @merge_sort(%var_67, %var_75)
+    %var_89 = load @var_66
+    %var_97 = load @var_19
+    call @merge_sort(%var_89, %var_97)
+    %var_111 = load @var_18
+    @var_120 = alloc i32
+    store %var_111, @var_120
+    %var_121 = load @var_66
+    @var_130 = alloc i32
+    store %var_121, @var_130
+    %var_131 = load @var_18
+    @var_140 = alloc i32
+    store %var_131, @var_140
+    jump %entry_344
+
+%entry_344:
+    @condition_164 = alloc i32
+    store 0, @condition_164
+    %var_141 = load @var_120
+    %var_146 = load @var_66
+    %var_150 = lt %var_141, %var_146
+    br %var_150, %entry_164, %entry_166
+
+%entry_164:
+    %var_153 = load @var_130
+    %var_158 = load @var_19
+    %var_162 = lt %var_153, %var_158
+    br %var_162, %entry_165, %entry_166
+
+%entry_165:
+    store 1, @condition_164
+    jump %entry_166
+
+%entry_166:
+    %var_166 = load @condition_164
+    br %var_166, %entry_345, %entry_346
+
+%entry_345:
+    %var_176 = getelemptr @var_17, 0
+    %var_177 = load @var_120
+    %var_185 = getelemptr %var_176, %var_177
+    %var_186 = load %var_185
+    %var_199 = getelemptr @var_17, 0
+    %var_200 = load @var_130
+    %var_208 = getelemptr %var_199, %var_200
+    %var_209 = load %var_208
+    %var_213 = lt %var_186, %var_209
+    br %var_213, %entry_329, %entry_330
+
+%entry_329:
+    %var_225 = getelemptr @var_17, 1
+    %var_226 = load @var_140
+    %var_234 = getelemptr %var_225, %var_226
+    %var_243 = getelemptr @var_17, 0
+    %var_244 = load @var_120
+    %var_252 = getelemptr %var_243, %var_244
+    %var_253 = load %var_252
+    store %var_253, %var_234
+    %var_261 = load @var_120
+    %var_268 = add %var_261, 1
+    store %var_268, @var_120
+    jump %entry_331
+
+%entry_330:
+    %var_281 = getelemptr @var_17, 1
+    %var_282 = load @var_140
+    %var_290 = getelemptr %var_281, %var_282
+    %var_299 = getelemptr @var_17, 0
+    %var_300 = load @var_130
+    %var_308 = getelemptr %var_299, %var_300
+    %var_309 = load %var_308
+    store %var_309, %var_290
+    %var_317 = load @var_130
+    %var_324 = add %var_317, 1
+    store %var_324, @var_130
+    jump %entry_331
+
+%entry_331:
+    %var_332 = load @var_140
+    %var_339 = add %var_332, 1
+    store %var_339, @var_140
+    jump %entry_344
+
+%entry_346:
+    jump %entry_428
+
+%entry_428:
+    %var_347 = load @var_120
+    %var_352 = load @var_66
+    %var_356 = lt %var_347, %var_352
+    br %var_356, %entry_429, %entry_430
+
+%entry_429:
+    %var_368 = getelemptr @var_17, 1
+    %var_369 = load @var_140
+    %var_377 = getelemptr %var_368, %var_369
+    %var_386 = getelemptr @var_17, 0
+    %var_387 = load @var_120
+    %var_395 = getelemptr %var_386, %var_387
+    %var_396 = load %var_395
+    store %var_396, %var_377
+    %var_404 = load @var_120
+    %var_411 = add %var_404, 1
+    store %var_411, @var_120
+    %var_416 = load @var_140
+    %var_423 = add %var_416, 1
+    store %var_423, @var_140
+    jump %entry_428
+
+%entry_430:
+    jump %entry_512
+
+%entry_512:
+    %var_431 = load @var_130
+    %var_436 = load @var_19
+    %var_440 = lt %var_431, %var_436
+    br %var_440, %entry_513, %entry_514
+
+%entry_513:
+    %var_452 = getelemptr @var_17, 1
+    %var_453 = load @var_140
+    %var_461 = getelemptr %var_452, %var_453
+    %var_470 = getelemptr @var_17, 0
+    %var_471 = load @var_130
+    %var_479 = getelemptr %var_470, %var_471
+    %var_480 = load %var_479
+    store %var_480, %var_461
+    %var_488 = load @var_130
+    %var_495 = add %var_488, 1
+    store %var_495, @var_130
+    %var_500 = load @var_140
+    %var_507 = add %var_500, 1
+    store %var_507, @var_140
+    jump %entry_512
+
+%entry_514:
+    jump %entry_584
+
+%entry_584:
+    %var_515 = load @var_18
+    %var_520 = load @var_19
+    %var_524 = lt %var_515, %var_520
+    br %var_524, %entry_585, %entry_586
+
+%entry_585:
+    %var_536 = getelemptr @var_17, 0
+    %var_537 = load @var_18
+    %var_545 = getelemptr %var_536, %var_537
+    %var_554 = getelemptr @var_17, 1
+    %var_555 = load @var_18
+    %var_563 = getelemptr %var_554, %var_555
+    %var_564 = load %var_563
+    store %var_564, %var_545
+    %var_572 = load @var_18
+    %var_579 = add %var_572, 1
+    store %var_579, @var_18
+    jump %entry_584
+
+%entry_586:
+    ret
+}
+
+
 
 
 fun @main(): i32 {
 
-%entry_2:
-    ret 
+%entry_588:
+    %var_597 = getelemptr @var_17, 0
+    %var_598 = getelemptr %var_597, 0
+    %var_606 = call @getarray(%var_598)
+    @var_614 = alloc i32
+    store %var_606, @var_614
+    %var_623 = load @var_614
+    call @merge_sort(0, %var_623)
+    %var_637 = load @var_614
+    %var_653 = getelemptr @var_17, 0
+    %var_654 = getelemptr %var_653, 0
+    call @putarray(%var_637, %var_654)
+    ret 0
 
-%entry_3:
+%entry_676:
     ret 0
 }
 
