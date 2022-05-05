@@ -1,8 +1,15 @@
-int f(int arr[]) {
-  return arr[1];
+int n;
+int QuickSort(int arr[], int low, int high)
+{
+    int i;
+    i = low;
+
+    int tmp;
+    tmp = i - 1;
+    tmp = QuickSort(arr, low, tmp);
+    return 0;
 }
 
-int main() {
-  int arr[2] = {1, 2};
-  return f(arr);
+int main(){
+    return 0;
 }

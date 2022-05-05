@@ -10,28 +10,34 @@ decl @stoptime()
 
 
 
-fun @f(@arr: *i32): i32 {
-%entry:
-  %arr = alloc *i32
-  store @arr, %arr
-  %0 = load %arr
-  %1 = getptr %0, 1
-  %2 = load %1
-  ret %2
-}
+global @var_1 = alloc i32, zeroinit
 
 
-fun @f(@arr: *i32): i32 {
+fun @QuickSort(@arr: *i32, @low: i32, @high: i32): i32 {
 
-%entry_3:
-    @var_1 = alloc *i32
-    store @arr, @var_1
-    %var_12 = load @var_1
-    %var_13 = getptr %var_12, 1
-    %var_14 = load %var_13
-    ret %var_14
+%entry_6:
+    @var_2 = alloc *i32
+    store @arr, @var_2
+    @var_3 = alloc i32
+    store @low, @var_3
+    @var_4 = alloc i32
+    store @high, @var_4
+    @var_7 = alloc i32
+    %var_8 = load @var_3
+    store %var_8, @var_7
+    @var_16 = alloc i32
+    %var_17 = load @var_7
+    %var_24 = sub %var_17, 1
+    store %var_24, @var_16
+    %var_29 = load @var_2
+    %var_30 = getptr @var_2, 0
+    %var_38 = load @var_3
+    %var_46 = load @var_16
+    %var_54 = call @QuickSort(%var_30, %var_38, %var_46)
+    store %var_54, @var_16
+    ret 0
 
-%entry_22:
+%entry_69:
     ret 0
 }
 
@@ -40,14 +46,10 @@ fun @f(@arr: *i32): i32 {
 
 fun @main(): i32 {
 
-%entry_24:
-    @var_33 = alloc [i32, 2]
-    store {1, 2}, @var_33
-    %var_34 = load @var_33
-    %var_42 = call @f(%var_34)
-    ret %var_42
+%entry_71:
+    ret 0
 
-%entry_49:
+%entry_80:
     ret 0
 }
 

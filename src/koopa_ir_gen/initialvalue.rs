@@ -12,7 +12,7 @@ pub trait InitValue {
 // ConstExp ::= Exp
 impl ConstExp {
     pub fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32) -> InitRetType {
-        let ret_val = self.exp.eval(scope, size);
+        let ret_val = self.exp.eval(scope, size, false);
 
         assert!(ret_val.is_constant);
 
@@ -104,7 +104,7 @@ impl InitValue for InitVal {
     fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32, dims: &[i32]) -> InitRetType {
         match self {
             InitVal::SingleExp(exp) => { // must have one element.
-                let ret_val = exp.eval(scope, size);
+                let ret_val = exp.eval(scope, size, false);
                 let mut val = Vec::<(bool, i32)>::new();
 
                 val.push((ret_val.is_constant, ret_val.exp_res_id));

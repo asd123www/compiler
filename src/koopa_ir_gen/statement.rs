@@ -33,7 +33,7 @@ impl OpenStatement {
         let mut program = "".to_string();
         match self {
             OpenStatement::If(exp, stmt) => {
-                let exp_val = exp.eval(scope, size);
+                let exp_val = exp.eval(scope, size, false);
                 let stmt_val = stmt.eval(scope, exp_val.size);
                 let size = stmt_val.size + 1;
                 let name = get_name(exp_val.exp_res_id, exp_val.is_constant);
@@ -51,7 +51,7 @@ impl OpenStatement {
                 return ExpRetType{size: size + 1, program, exp_res_id: 0, is_constant: false,};
             },
             OpenStatement::Ifelse(exp, cs, os) => {
-                let exp_val = exp.eval(scope, size);
+                let exp_val = exp.eval(scope, size, false);
                 let cs_val = cs.eval(scope, exp_val.size);
                 let os_val = os.eval(scope, cs_val.size);
                 let size = os_val.size + 1;
@@ -77,7 +77,7 @@ impl OpenStatement {
                 return ExpRetType{size: size + 2, program, exp_res_id: 0, is_constant: false,};
             },
             OpenStatement::While(exp, stmt) => {
-                let exp_val = exp.eval(scope, size);
+                let exp_val = exp.eval(scope, size, false);
                 let stmt_val = stmt.eval(scope, exp_val.size);
                 let size = stmt_val.size + 1;
                 let name = get_name(exp_val.exp_res_id, exp_val.is_constant);
@@ -124,7 +124,7 @@ impl ClosedStatement {
             },
             ClosedStatement::Ifelse(exp, cs1, cs2) => {
 
-                let exp_val = exp.eval(scope, size);
+                let exp_val = exp.eval(scope, size, false);
                 let cs1_val = cs1.eval(scope, exp_val.size);
                 let cs2_val = cs2.eval(scope, cs1_val.size);
                 let size = cs2_val.size + 1;
@@ -160,8 +160,8 @@ impl Stmt {
         match self {
             Stmt::LvalExp(lval, exp) => {
                 // query the scope to find variable id, and change it.
-                let var = lval.eval(scope, size);
-                let ret_val = exp.eval(scope, var.size);
+                let var = lval.eval(scope, size, false); // assignment must be `int` variable.
+                let ret_val = exp.eval(scope, var.size, false);
                 let name = get_name(ret_val.exp_res_id, ret_val.is_constant);
                 size = ret_val.size;
 
@@ -185,7 +185,7 @@ impl Stmt {
                 }
             },
             Stmt::RetExp(exp) => {
-                let instrs = exp.eval(scope, size);
+                let instrs = exp.eval(scope, size, false);
                 let name = get_name(instrs.exp_res_id, instrs.is_constant);
                 println!("asd123www: {}", instrs.exp_res_id);
 
@@ -202,7 +202,7 @@ impl Stmt {
             },
 
             Stmt::SingleExp(exp) => {
-                let ret_val = exp.eval(scope, size);
+                let ret_val = exp.eval(scope, size, false);
                 ret_val
             },
 

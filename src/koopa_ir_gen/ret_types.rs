@@ -3,6 +3,9 @@ pub const CONSTANT_INT: i32 = 1;
 pub const VARIABLE_INT: i32 = 2;
 pub const VARIABLE_ARRAY: i32 = 3;
 pub const PARAMETER_ARRAY: i32 = 4;
+pub const ARRAY_DIMENSION: i32 = 5;
+
+pub const TYPE_BITS: i32 = 3;
 
 
 // exp_res_id:

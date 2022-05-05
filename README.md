@@ -66,4 +66,6 @@ We don't have to evaluate it during compiling!
 
 Just treat it as an ordinary array.
 
-### Function Parameter type is `pointer` or ``
+### Function Parameter type is `pointer` or `int` ?
+
+use the biset, maximum parameter number is 29.
