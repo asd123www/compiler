@@ -187,7 +187,7 @@ impl Stmt {
             Stmt::RetExp(exp) => {
                 let instrs = exp.eval(scope, size, false);
                 let name = get_name(instrs.exp_res_id, instrs.is_constant);
-                println!("asd123www: {}", instrs.exp_res_id);
+                // println!("asd123www: {}", instrs.exp_res_id);
 
                 program.push_str(&instrs.program);
                 program.push_str(&format!("    ret {}\n", &name));
@@ -195,6 +195,17 @@ impl Stmt {
 
                 return ExpRetType {
                     size: instrs.size + 1,
+                    program: program,
+                    exp_res_id: 0, // return stmt => -2;
+                    is_constant: false,
+                }
+            },
+            Stmt::RetNone() => {
+                program.push_str(&format!("    ret \n",));
+                program.push_str(&format!("\n%entry_{}:\n", size + 1));
+
+                return ExpRetType {
+                    size: size + 1,
                     program: program,
                     exp_res_id: 0, // return stmt => -2;
                     is_constant: false,

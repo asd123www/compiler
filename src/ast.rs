@@ -101,6 +101,7 @@ pub enum ClosedStatement {
 #[derive(Debug)]
 pub enum Stmt {
     RetExp(Exp),
+    RetNone(),
     LvalExp(LVal, Exp),
     SingleExp(Exp),
     Block(Block),

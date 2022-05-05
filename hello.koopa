@@ -10,46 +10,14 @@ decl @stoptime()
 
 
 
-global @var_1 = alloc i32, zeroinit
-
-
-fun @QuickSort(@arr: *i32, @low: i32, @high: i32): i32 {
-
-%entry_6:
-    @var_2 = alloc *i32
-    store @arr, @var_2
-    @var_3 = alloc i32
-    store @low, @var_3
-    @var_4 = alloc i32
-    store @high, @var_4
-    @var_7 = alloc i32
-    %var_8 = load @var_3
-    store %var_8, @var_7
-    @var_16 = alloc i32
-    %var_17 = load @var_7
-    %var_24 = sub %var_17, 1
-    store %var_24, @var_16
-    %var_29 = load @var_2
-    %var_30 = getptr @var_2, 0
-    %var_38 = load @var_3
-    %var_46 = load @var_16
-    %var_54 = call @QuickSort(%var_30, %var_38, %var_46)
-    store %var_54, @var_16
-    ret 0
-
-%entry_69:
-    ret 0
-}
-
-
 
 
 fun @main(): i32 {
 
-%entry_71:
-    ret 0
+%entry_2:
+    ret 
 
-%entry_80:
+%entry_3:
     ret 0
 }
 

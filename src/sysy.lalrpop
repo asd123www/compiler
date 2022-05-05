@@ -117,6 +117,7 @@ ClosedStatement: ClosedStatement = {
 //        | "break" ";"
 //        | "continue" ";"
 Stmt: Stmt = {
+    "return" ";" => Stmt::RetNone(),
     "return" <exp: Exp> ";" => Stmt::RetExp(exp),
     <lval: LVal> "=" <exp: Exp> ";" => Stmt::LvalExp(lval, exp),
     <exp: Exp> ";" => Stmt::SingleExp(exp),
