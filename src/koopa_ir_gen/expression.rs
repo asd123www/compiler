@@ -472,13 +472,22 @@ impl ExpResult for LAndExp {
                 };
             },
             LAndExp::Andexp(landexp, eqexp) => {
+                let mut program = String::from("");
                 let ret_val1 = (*landexp).eval(scope, size, is_pt);
                 let ret_val2 = eqexp.eval(scope, ret_val1.size, is_pt);
                 let name1 = get_name(ret_val1.exp_res_id, ret_val1.is_constant);
                 let name2 = get_name(ret_val2.exp_res_id, ret_val2.is_constant);
 
+                if ret_val1.is_constant && ret_val2.is_constant { // if it's constant.
+                    return ExpRetType {
+                        size: ret_val2.size,
+                        program: program,
+                        exp_res_id: ((ret_val1.exp_res_id != 0) && (ret_val2.exp_res_id != 0)) as i32,
+                        is_constant: true,
+                    };
+                }
+
                 let size = ret_val2.size + 1;
-                let mut program = String::from("");
 
                 // init condition to zero.
                 program.push_str(&format!("    @condition_{} = alloc i32\n", size));
@@ -505,13 +514,7 @@ impl ExpResult for LAndExp {
                 return ExpRetType {
                     size: size + 2,
                     program: program,
-                    exp_res_id: {
-                        if ret_val1.is_constant && ret_val2.is_constant {
-                            ((ret_val1.exp_res_id != 0) && (ret_val2.exp_res_id != 0)) as i32
-                        } else {
-                            size + 2
-                        }
-                    },
+                    exp_res_id: size + 2,
                     is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },
@@ -534,13 +537,22 @@ impl ExpResult for LOrExp {
                 };
             },
             LOrExp::Orexp(lorexp, landexp) => {
+                let mut program = String::from("");
                 let ret_val1 = (*lorexp).eval(scope, size, is_pt);
                 let ret_val2 = landexp.eval(scope, ret_val1.size, is_pt);
+                if ret_val1.is_constant && ret_val2.is_constant { // if it's constant.
+                    return ExpRetType {
+                        size: ret_val2.size,
+                        program: program,
+                        exp_res_id: (ret_val1.exp_res_id != 0 || ret_val2.exp_res_id != 0) as i32,
+                        is_constant: true,
+                    };
+                }
+
                 let name1 = get_name(ret_val1.exp_res_id, ret_val1.is_constant);
                 let name2 = get_name(ret_val2.exp_res_id, ret_val2.is_constant);
 
                 let size = ret_val2.size + 1;
-                let mut program = String::from("");
 
 
                 // init condition to zero.
@@ -568,13 +580,7 @@ impl ExpResult for LOrExp {
                 return ExpRetType {
                     size: size + 2,
                     program: program,
-                    exp_res_id: {
-                        if ret_val1.is_constant && ret_val2.is_constant {
-                            ((ret_val1.exp_res_id != 0) || (ret_val2.exp_res_id != 0)) as i32
-                        } else {
-                            size + 2
-                        }
-                    },
+                    exp_res_id: size + 2,
                     is_constant: ret_val1.is_constant && ret_val2.is_constant,
                 };
             },

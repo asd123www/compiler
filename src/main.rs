@@ -1,5 +1,6 @@
 mod ast;
 mod koopa_ir_gen;
+mod riscv_target_gen;
 
 use lalrpop_util::lalrpop_mod;
 use std::env::args;
@@ -33,16 +34,23 @@ fn main() -> Result<()> {
 
     // 调用生成的parser: sysy, 指定start non-terminal: CompUnit(结尾默认加入Parser).
     let ast = sysy::CompUnitParser::new().parse(&input).unwrap();
-    
-    // // 输出解析得到的 AST
     let koopa_program = koopa_ir_gen::generator(ast);
-    let mut file = File::create(output)?;
-    file.write_all(koopa_program.as_bytes())?;
-
-    // println!("{:#?}", ast);
+    
+    if mode == "-riscv" { // risc-v
+        let driver = koopa::front::Driver::from(koopa_program);
+        let program = driver.generate_program().unwrap();
+        let riscv_program = riscv_target_gen::generate(program);
+        let mut file = File::create(output)?;
+        file.write_all(riscv_program.as_bytes())?;
+    } else {
+        let mut file = File::create(output)?;
+        file.write_all(koopa_program.as_bytes())?;
+    }
 
     Ok(())
 }
 
 // cargo run -- -koopa hello.c -o hello.koopa
 // autotest -koopa -s lv1 /home/compiler
+
+// cargo run -- -riscv hello.c -o hello.rv

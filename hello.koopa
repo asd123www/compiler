@@ -12,69 +12,12 @@ decl @stoptime()
 
 
 
-fun @pow(@x: i32, @n: i32): i32 {
-
-%entry_4:
-    @var_1 = alloc i32
-    store @x, @var_1
-    @var_2 = alloc i32
-    store @n, @var_2
-    @var_14 = alloc i32
-    store 1, @var_14
-    jump %entry_76
-
-%entry_76:
-    %var_15 = load @var_2
-    %var_27 = ne %var_15, 0
-    br %var_27, %entry_77, %entry_78
-
-%entry_77:
-    %var_30 = load @var_2
-    %var_35 = mod %var_30, 2
-    br %var_35, %entry_52, %entry_53
-
-%entry_52:
-    %var_41 = load @var_14
-    %var_44 = load @var_1
-    %var_46 = mul %var_41, %var_44
-    store %var_46, @var_14
-    jump %entry_53
-
-%entry_53:
-    %var_54 = load @var_1
-    %var_57 = load @var_1
-    %var_59 = mul %var_54, %var_57
-    store %var_59, @var_1
-    %var_65 = load @var_2
-    %var_70 = div %var_65, 2
-    store %var_70, @var_2
-    jump %entry_76
-
-%entry_78:
-    %var_79 = load @var_14
-    ret %var_79
-
-%entry_87:
-    ret 0
-}
-
-
-
-
 fun @main(): i32 {
 
-%entry_89:
-    @var_99 = alloc i32
-    store 10, @var_99
-    @var_109 = alloc i32
-    store 2, @var_109
-    %var_110 = load @var_109
-    %var_118 = load @var_99
-    %var_126 = call @pow(%var_110, %var_118)
-    call @putint(%var_126)
-    ret 0
+%entry_2:
+    ret 1
 
-%entry_147:
+%entry_53:
     ret 0
 }
 
