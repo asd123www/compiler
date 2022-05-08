@@ -18,11 +18,8 @@ fun @main(): i32 {
     @var_12 = alloc i32
     store 1, @var_12
     %var_13 = load @var_12
-    %var_20 = add %var_13, 1
-    ret %var_20
+    ret %var_13
 
-%entry_25:
+%entry_21:
     ret 0
 }
-
-

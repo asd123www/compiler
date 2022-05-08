@@ -3,10 +3,36 @@ use core::panic;
 
 // use koopa::front::ast::Return;
 use koopa::ir::Program;
+use koopa::ir::TypeKind;
+use koopa::ir::Value;
 // use koopa::ir::Value;
 use koopa::ir::ValueKind;
+use koopa::ir::dfg::DataFlowGraph;
+use koopa::ir::entities::ValueData;
 use std::collections::HashMap;
 
+const MACHINE_BYTE: i32 = 4; // 32-bit machine.
+const TYPE_POINTER: i32 = 1;
+
+// scope use the Value(pointer) to address, not the inherit `variable name`.
+// you should accept the API instead of your own convention to code easier.
+
+
+fn load2register(scope: &HashMap<Value, (i32, i32)>, pt: &Value, val: &ValueData, dst: &str) -> String {
+    println!("{:?}", pt);
+    let mut program = "".to_string();
+    match val.kind() {
+        ValueKind::Integer(var) => {
+            program.push_str(&format!("    li {}, {}\n", dst, var.value()));
+        },
+        _ => {
+            let pos = scope.get(pt).unwrap();
+            assert!(pos.0 == TYPE_POINTER);
+            program.push_str(&format!("    lw {}, {}(sp)\n", dst, pos.1))
+        },
+    }
+    return program;
+}
 
 trait GenerateAsm {
     fn gen(&self, /* 其他必要的参数 */) -> String;
@@ -16,8 +42,9 @@ trait GenerateAsm {
 impl GenerateAsm for koopa::ir::FunctionData {
     fn gen(&self) -> String {
 
-        // id -> position in stack.
-        let mut scope: HashMap<i32, i32> = HashMap::new();
+        let mut stack_size = 0;
+        // id -> (variable type, position in stack).
+        let mut scope: HashMap<Value, (i32, i32)> = HashMap::new();
 
         // we don't know how to deal with these.
         if self.name() != "@main" {
@@ -52,18 +79,44 @@ impl GenerateAsm for koopa::ir::FunctionData {
                     ValueKind::BlockArgRef(block_argref) => {
                         println!("    BlockArgRef: {:?}:\n", block_argref);
                     },
-                    ValueKind::Alloc(val) => {
-                        
-                        println!("    Alloc: {:?}:\n", val);
+                    ValueKind::Alloc(_val) => {
+                        scope.insert(inst, (TYPE_POINTER, stack_size));
+                        // scope.insert(value_data.name().clone().unwrap(), (TYPE_POINTER, stack_size));
+                        stack_size += match value_data.ty().kind() {
+                            TypeKind::Pointer(base) => MACHINE_BYTE,
+                            _ => panic!("Wrong type in Alloc"),
+                        };
+                        // println!("    Inst: {:?}:\n", value_data);
+                        // println!("    Alloc: {:?}:\n\n\n", val);
                     },
                     ValueKind::GlobalAlloc(globl_alloc) => {
                         println!("    GlobalAlloc: {:?}:\n", globl_alloc);
                     },
                     ValueKind::Load(load) => {
-                        println!("    Load: {:?}:\n", load);
+                        let src = data_graph.value(load.src());
+                        let fragment = load2register(&scope, &load.src(), src, "t1");
+                        program.push_str(&fragment);
+
+                        scope.insert(inst, (TYPE_POINTER, stack_size));
+                        program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
+                        stack_size += MACHINE_BYTE; // only  wrong!!!.
+
+                        // println!("    {:?}\n", inst);
+                        // println!("    Load: {:?}:\n", load);
+                        // panic!("I'm fucking done");
                     },
                     ValueKind::Store(store) => {
-                        println!("    Store: {:?}:\n", store);
+                        // # store 10, @x
+                        // li t0, 10
+                        // sw t0, 0(sp)                      
+                        let src = data_graph.value(store.value());
+                        let dst = data_graph.value(store.dest());
+                        let pos = scope.get(&store.dest()).unwrap();
+
+                        let fragment = load2register(&scope, &store.value(), src, "t1");
+                        program.push_str(&fragment);
+                        assert!(pos.0 == TYPE_POINTER);
+                        program.push_str(&format!("    sw t1, {}(sp)\n", pos.1));
                     },
                     ValueKind::GetPtr(getptr) => {
                         println!("    GetPtr: {:?}:\n", getptr);
@@ -74,35 +127,24 @@ impl GenerateAsm for koopa::ir::FunctionData {
                     ValueKind::Binary(binary) => {
                         println!("    Binary: {:?}:\n", binary);
                     },
-                    // Conditional branch.
                     ValueKind::Branch(br) => {
                         println!("    Branch: {:?}:\n", br);
                     },
-                    // Unconditional jump.
                     ValueKind::Jump(jump) => {
                         println!("    Jump: {:?}:\n", jump);
                     },
-                    // Function call.
                     ValueKind::Call(func_call) => {
                         println!("    Call: {:?}:\n", func_call);
                     },
                     ValueKind::Return(val) => { // ret
                         match val.value() {
                             Some(x) => {
-                                let data = data_graph.value(x).kind();
-                                match data {
-                                    ValueKind::Integer(var) => {
-                                        program.push_str(&format!("    li a0, {}\n", var.value()));
-                                    },
-                                    _ => {
-                                        panic!("Return a non-integer type.");
-                                    },
-                                }
+                                let loader = load2register(&scope, &x, data_graph.value(x), "a0");
+                                program.push_str(&loader);
                                 program.push_str("    ret\n");
-                                println!("    {:?}:\n", data);
                             },
                             None => {
-                                panic!("asd123www");
+                                panic!("Return a none value?");
                             },
                         }
                     }
@@ -110,7 +152,6 @@ impl GenerateAsm for koopa::ir::FunctionData {
             }
         }
         program.push_str("\n\n\n");
-        
         return program;
     }
 }
