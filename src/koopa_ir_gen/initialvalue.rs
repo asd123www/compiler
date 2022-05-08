@@ -69,7 +69,7 @@ impl InitValue for ConstInitVal {
                             }
                             let pos = {
                                 if val.len() == 0 {
-                                    dims.len() - 1
+                                    1// dims.len() - 1
                                 } else {
                                     let mut pd = 1;
                                     let mut pos = dims.len();
@@ -144,7 +144,7 @@ impl InitValue for InitVal {
                             }
                             let pos = {
                                 if val.len() == 0 {
-                                    dims.len() - 1
+                                    1// dims.len() - 1
                                 } else {
                                     let mut pd = 1;
                                     let mut pos = dims.len();

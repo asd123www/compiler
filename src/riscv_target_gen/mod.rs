@@ -1,10 +1,11 @@
 
 use core::panic;
 
-use koopa::front::ast::Return;
+// use koopa::front::ast::Return;
 use koopa::ir::Program;
-use koopa::ir::Value;
+// use koopa::ir::Value;
 use koopa::ir::ValueKind;
+use std::collections::HashMap;
 
 
 trait GenerateAsm {
@@ -15,6 +16,10 @@ trait GenerateAsm {
 impl GenerateAsm for koopa::ir::FunctionData {
     fn gen(&self) -> String {
 
+        // id -> position in stack.
+        let mut scope: HashMap<i32, i32> = HashMap::new();
+
+        // we don't know how to deal with these.
         if self.name() != "@main" {
             return "".to_string();
         }
@@ -23,19 +28,64 @@ impl GenerateAsm for koopa::ir::FunctionData {
         program.push_str(&format!("    .globl {}\n", &self.name()[1..self.name().len()]));
         program.push_str(&format!("{}:\n", &self.name()[1..self.name().len()]));
         for (&_bb, node) in self.layout().bbs() {
-            // 一些必要的处理
-            // ... 
             let data_graph = self.dfg();
             // 遍历指令列表
             for &inst in node.insts().keys() {
                 let value_data = data_graph.value(inst);
                 // 访问指令
-                // ...
                 match value_data.kind() {
-                    ValueKind::Integer(_int) => {
-                      // 处理 integer 指令
-                      // ...
-                    }
+                    ValueKind::Integer(val) => {
+                        println!("    Integer: {:?}:\n", val);
+                    },
+                    ValueKind::ZeroInit(val) => {
+                        println!("    ZeroInit: {:?}:\n", val);
+                    },
+                    ValueKind::Undef(val) => {
+                        println!("    Undef: {:?}:\n", val);
+                    },
+                    ValueKind::Aggregate(aggre) => {
+                        println!("    Aggregate: {:?}:\n", aggre);
+                    },
+                    ValueKind::FuncArgRef(func_argref) => {
+                        println!("    FuncArgRef: {:?}:\n", func_argref);
+                    },
+                    ValueKind::BlockArgRef(block_argref) => {
+                        println!("    BlockArgRef: {:?}:\n", block_argref);
+                    },
+                    ValueKind::Alloc(val) => {
+                        
+                        println!("    Alloc: {:?}:\n", val);
+                    },
+                    ValueKind::GlobalAlloc(globl_alloc) => {
+                        println!("    GlobalAlloc: {:?}:\n", globl_alloc);
+                    },
+                    ValueKind::Load(load) => {
+                        println!("    Load: {:?}:\n", load);
+                    },
+                    ValueKind::Store(store) => {
+                        println!("    Store: {:?}:\n", store);
+                    },
+                    ValueKind::GetPtr(getptr) => {
+                        println!("    GetPtr: {:?}:\n", getptr);
+                    },
+                    ValueKind::GetElemPtr(getelemptr) => {
+                        println!("    GetElemPtr: {:?}:\n", getelemptr);
+                    },
+                    ValueKind::Binary(binary) => {
+                        println!("    Binary: {:?}:\n", binary);
+                    },
+                    // Conditional branch.
+                    ValueKind::Branch(br) => {
+                        println!("    Branch: {:?}:\n", br);
+                    },
+                    // Unconditional jump.
+                    ValueKind::Jump(jump) => {
+                        println!("    Jump: {:?}:\n", jump);
+                    },
+                    // Function call.
+                    ValueKind::Call(func_call) => {
+                        println!("    Call: {:?}:\n", func_call);
+                    },
                     ValueKind::Return(val) => { // ret
                         match val.value() {
                             Some(x) => {
@@ -49,12 +99,6 @@ impl GenerateAsm for koopa::ir::FunctionData {
                                     },
                                 }
                                 program.push_str("    ret\n");
-                                // if data.
-                                // if data_graph.value(x).ty() == "i32" { // return a fixed value.
-                                //     program.push_str("    ret {}\n", data_graph.value(x).);
-                                // } else {
-
-                                // }
                                 println!("    {:?}:\n", data);
                             },
                             None => {
@@ -62,12 +106,11 @@ impl GenerateAsm for koopa::ir::FunctionData {
                             },
                         }
                     }
-                    // 其他种类暂时遇不到
-                    _ => unreachable!(),
-                  }                  
+                }
             }
         }
-
+        program.push_str("\n\n\n");
+        
         return program;
     }
 }
