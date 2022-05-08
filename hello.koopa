@@ -12,14 +12,26 @@ decl @stoptime()
 
 
 
-fun @main(): i32 {
+fun @f(): i32 {
 
 %entry_2:
-    @var_12 = alloc i32
-    store 1, @var_12
-    %var_13 = load @var_12
-    ret %var_13
+    ret 0
+
+%entry_11:
+    ret 0
+}
+
+
+
+
+fun @main(): i32 {
+
+%entry_13:
+    %var_14 = call @f()
+    ret %var_14
 
 %entry_21:
     ret 0
 }
+
+

@@ -69,3 +69,11 @@ Just treat it as an ordinary array.
 ### Function Parameter type is `pointer` or `int` ?
 
 use the biset, maximum parameter number is 29.
+
+
+
+## risc-v
+
+### how to reference variable
+scope use the Value(pointer) to address, not the inherit `variable name`.
+you should accept the API instead of your own convention to code easier.

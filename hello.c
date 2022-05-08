@@ -1,4 +1,7 @@
+int f() {
+  return 0;
+}
+
 int main() {
-  int x = 1;
-  return x;
+  return f();
 }
