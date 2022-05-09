@@ -1,34 +1,29 @@
-    .globl main
-main:
-    addi sp, sp, -40
+    .text
+    .globl f
+f:
+    addi sp, sp, -8
+    sw ra, 4(sp)
 
 BasicBlock1:
-    li t1, 0
-    sw t1, a
-    li t1, 1
-    sw t1, c
-    li t1, 2
-    sw t1, 8(sp)
-    lw t1, a
-    sw t1, 12(sp)
-    lw t1, 12(sp)
-    li t2, 0
-    add t1, t1, t2
-    sw t1, 16(sp)
-    lw t1, c
-    sw t1, 20(sp)
-    lw t1, 16(sp)
-    lw t2, 20(sp)
-    add t1, t1, t2
-    sw t1, 24(sp)
-    lw t1, 8(sp)
-    sw t1, 28(sp)
-    lw t1, 24(sp)
-    lw t2, 28(sp)
-    add t1, t1, t2
-    sw t1, 32(sp)
-    lw a0, 32(sp)
-    addi sp, sp, 40
+    li a0, 0
+    lw ra, 4(sp)
+    addi sp, sp, 8
+    ret
+
+
+
+    .text
+    .globl main
+main:
+    addi sp, sp, -16
+    sw ra, 12(sp)
+
+BasicBlock2:
+    call f
+    sw a0, 8(sp)
+    lw a0, 8(sp)
+    lw ra, 12(sp)
+    addi sp, sp, 16
     ret
 
 

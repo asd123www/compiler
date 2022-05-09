@@ -10,15 +10,32 @@ decl @stoptime()
 
 
 
+global @var_10 = alloc i32, 10
 
 
-fun @f(): i32 {
+fun @inc(): i32 {
 
-%entry_2:
+%entry_12:
+    %var_13 = load @var_10
+    %var_20 = add %var_13, 1
+    store %var_20, @var_10
+    %var_25 = load @var_10
+    ret %var_25
+
+%entry_33:
     ret 0
+}
 
-%entry_11:
-    ret 0
+
+
+
+fun @print_a() {
+
+%entry_35:
+    %var_36 = load @var_10
+    call @putint(%var_36)
+    call @putch(10)
+    ret
 }
 
 
@@ -26,11 +43,36 @@ fun @f(): i32 {
 
 fun @main(): i32 {
 
-%entry_13:
-    %var_14 = call @f()
-    ret %var_14
+%entry_65:
+    @var_75 = alloc i32
+    store 0, @var_75
+    jump %entry_164
 
-%entry_21:
+%entry_164:
+    %var_76 = load @var_75
+    %var_85 = lt %var_76, 10
+    br %var_85, %entry_165, %entry_166
+
+%entry_165:
+    %var_89 = call @inc()
+    @var_105 = alloc i32
+    store 1, @var_105
+    %var_106 = load @var_105
+    %var_113 = add %var_106, 2
+    store %var_113, @var_105
+    %var_118 = load @var_105
+    call @putint(%var_118)
+    call @putch(10)
+    call @print_a()
+    %var_152 = load @var_75
+    %var_159 = add %var_152, 1
+    store %var_159, @var_75
+    jump %entry_164
+
+%entry_166:
+    ret 0
+
+%entry_175:
     ret 0
 }
 

@@ -1,9 +1,10 @@
 
 use core::panic;
-use std::hash::Hash;
+use std::error::Error;
 
 use koopa::ir::BasicBlock;
 use koopa::ir::BinaryOp;
+use koopa::ir::FunctionData;
 // use koopa::front::ast::Return;
 use koopa::ir::Program;
 use koopa::ir::TypeKind;
@@ -15,6 +16,7 @@ use koopa::ir::entities::ValueData;
 use std::collections::HashMap;
 
 const MACHINE_BYTE: i32 = 4; // 32-bit machine.
+const GLOBAL_INTEGER: i32 = 0;
 const INTEGER_POINTER: i32 = 1;
 
 // scope use the Value(pointer) to address, not the inherit `variable name`.
@@ -26,17 +28,56 @@ fn block2str(bb: &BasicBlock) -> String {
     return format!("{}{}", name[0..10].to_string(), name[11..name.len()-1].to_string());
 }
 
-fn load2register(scope: &HashMap<Value, (i32, i32)>, pt: &Value, val: &ValueData, dst: &str) -> String {
+fn calc_funcinstr(func: &FunctionData) -> i32 {
+    let mut size = 0;
+    for (&_bb, node) in func.layout().bbs() {
+        size += node.insts().len() as i32;
+    }
+    size
+}
+
+// global variable and local var is different, you should treat them differently.
+fn load2register(scope: &HashMap<Value, (i32, i32)>, pt: &Value, data_graph: &DataFlowGraph, dst: &str) -> String {
+    let mut program = "".to_string();
+    let is_local = scope.get(pt);
+
+    if is_local.is_none() || is_local.unwrap().0 == INTEGER_POINTER {
+        let val = data_graph.value(pt.clone());
+        match val.kind() {
+            ValueKind::Integer(var) => {
+                program.push_str(&format!("    li {}, {}\n", dst, var.value()));
+            },
+            _ => {
+                let pos = is_local.unwrap();
+                assert!(pos.0 == INTEGER_POINTER);
+                program.push_str(&format!("    lw {}, {}(sp)\n", dst, pos.1))
+            },
+        }
+    } else {
+        // there must be a global definition. else crash.
+        let pos = is_local.unwrap(); 
+        assert!(pos.0 == GLOBAL_INTEGER);
+        // la t0, var
+        // lw t0, 0(t0)
+        program.push_str(&format!("    la {}, glb_var{}\n", dst, pos.1));
+        program.push_str(&format!("    lw {}, 0({})\n", dst, dst)); // integer.
+    }
+    return program;
+}
+
+fn load2data(pt: &Value, val: &ValueData) -> String {
     // println!("{:?}", pt);
     let mut program = "".to_string();
     match val.kind() {
         ValueKind::Integer(var) => {
-            program.push_str(&format!("    li {}, {}\n", dst, var.value()));
+            return var.value().to_string();
+        },
+        ValueKind::ZeroInit(val) => {
+            return "0".to_string();
         },
         _ => {
-            let pos = scope.get(pt).unwrap();
-            assert!(pos.0 == INTEGER_POINTER);
-            program.push_str(&format!("    lw {}, {}(sp)\n", dst, pos.1))
+            println!("Load2Data {:?}", val);
+            panic!("fuck off");
         },
     }
     return program;
@@ -48,17 +89,17 @@ struct RetValue {
     stack_size: i32,
 }
 trait GenerateAsm {
-    fn gen(&self, koopa: &Program, func_data: &koopa::ir::FunctionData, scope: &mut HashMap<Value, (i32, i32)>, stack_size: i32) -> RetValue;
+    fn gen(&self, koopa: &Program, func_data: &koopa::ir::FunctionData, scope: &mut HashMap<Value, (i32, i32)>, stack_size: i32, mx_size: i32) -> RetValue;
 }
 
 trait GenerateAsmFunc {
-    fn gen(&self, koopa: &Program) -> String;
+    fn gen(&self, koopa: &Program, scope: &mut HashMap<Value, (i32, i32)>, param_len: i32) -> String;
 }
 
 
 impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
 
-    fn gen(&self, koopa: &Program, func_data: &koopa::ir::FunctionData, scope: &mut HashMap<Value, (i32, i32)>, stack_size: i32) -> RetValue {
+    fn gen(&self, koopa: &Program, func_data: &koopa::ir::FunctionData, scope: &mut HashMap<Value, (i32, i32)>, stack_size: i32, mx_size: i32) -> RetValue {
         let mut stack_size = stack_size;
         let mut program = "".to_string();
 
@@ -89,12 +130,11 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     println!("    BlockArgRef: {:?}:\n", block_argref);
                 },
                 ValueKind::Alloc(_val) => {
-                    scope.insert(inst, (INTEGER_POINTER, stack_size));
-                    // scope.insert(value_data.name().clone().unwrap(), (TYPE_POINTER, stack_size));
-                    stack_size += match value_data.ty().kind() {
-                        TypeKind::Pointer(base) => MACHINE_BYTE,
+                    stack_size -= match value_data.ty().kind() {
+                        TypeKind::Pointer(_base) => MACHINE_BYTE,
                         _ => panic!("Wrong type in Alloc"),
                     };
+                    scope.insert(inst, (INTEGER_POINTER, stack_size));
                     // println!("    Inst: {:?}:\n", value_data);
                     // println!("    Alloc: {:?}:\n\n\n", val);
                 },
@@ -102,26 +142,31 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     println!("    GlobalAlloc: {:?}:\n", globl_alloc);
                 },
                 ValueKind::Load(load) => {
-                    let src = data_graph.value(load.src());
-                    let fragment = load2register(&scope, &load.src(), src, "t1");
+                    // let src = data_graph.value(load.src());
+                    let fragment = load2register(&scope, &load.src(), data_graph, "t1");
                     program.push_str(&fragment);
 
+                    stack_size -= MACHINE_BYTE; // only  wrong!!!.
                     scope.insert(inst, (INTEGER_POINTER, stack_size));
                     program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
-                    stack_size += MACHINE_BYTE; // only  wrong!!!.
                 },
                 ValueKind::Store(store) => {
                     // # store 10, @x
                     // li t0, 10
                     // sw t0, 0(sp)                      
-                    let src = data_graph.value(store.value());
-                    let dst = data_graph.value(store.dest());
+                    // let src = data_graph.value(store.value());
+                    // let dst = data_graph.value(store.dest());
                     let pos = scope.get(&store.dest()).unwrap();
 
-                    let fragment = load2register(&scope, &store.value(), src, "t1");
+                    let fragment = load2register(&scope, &store.value(), data_graph, "t1");
                     program.push_str(&fragment);
-                    assert!(pos.0 == INTEGER_POINTER);
-                    program.push_str(&format!("    sw t1, {}(sp)\n", pos.1));
+                    if pos.0 == INTEGER_POINTER {
+                        program.push_str(&format!("    sw t1, {}(sp)\n", pos.1));
+                    } else {
+                        assert!(pos.0 == GLOBAL_INTEGER);
+                        program.push_str(&format!("    la t2, glb_var{}\n", pos.1));
+                        program.push_str(&format!("    sw t1, 0(t2)\n"));
+                    }
                 },
                 ValueKind::GetPtr(getptr) => {
                     println!("    GetPtr: {:?}:\n", getptr);
@@ -132,8 +177,8 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                 ValueKind::Binary(binary) => {
                     let lhs = binary.lhs();
                     let rhs = binary.rhs();
-                    let fragl = load2register(&scope, &lhs, data_graph.value(lhs), "t1");
-                    let fragr = load2register(&scope, &rhs, data_graph.value(rhs), "t2");
+                    let fragl = load2register(&scope, &lhs, data_graph, "t1");
+                    let fragr = load2register(&scope, &rhs, data_graph, "t2");
                     program.push_str(&fragl);
                     program.push_str(&fragr);
 
@@ -159,9 +204,9 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                             BinaryOp::Sar => "    sra t1, t1, t2\n",
                         });
                     
+                    stack_size -= MACHINE_BYTE;
                     scope.insert(inst, (INTEGER_POINTER, stack_size));
                     program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
-                    stack_size += MACHINE_BYTE;
 
                     // println!("    Binary: {:?}:\n", binary);
                 },
@@ -169,7 +214,7 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     let br_true = block2str(&br.true_bb());
                     let br_false = block2str(&br.false_bb());
 
-                    let frag = load2register(scope, &br.cond(), data_graph.value(br.cond()), "t1");
+                    let frag = load2register(scope, &br.cond(), data_graph, "t1");
                     program.push_str(&frag);
                     // bnez t0, then
                     // j else
@@ -184,25 +229,45 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     let args = func_call.args();
                     let name = koopa.func(func_call.callee()).name();
 
-                    // 
+                    // pass parameter.
+                    for (i, arg) in args.iter().enumerate() {
+                        let dst = {
+                            if i <= 7 { // a0-a7.
+                                format!("a{}", i.to_string())
+                            } else {
+                                format!("t1")
+                            }
+                        };
+                        let ret_val = load2register(scope, arg, data_graph, &dst);
+                        program.push_str(&ret_val);
+                        if i > 7 { // spilled
+                            program.push_str(&format!("    sw t1, {}(sp)\n", (i - 8) * 4));
+                        }
+                    }
+                    // call function.
                     program.push_str(&format!("    call {}\n", &name[1..name.len()]));
-                    println!("    Function: {:?}:\n", name);
+                    if !value_data.ty().is_unit() {
+                        // we only have `integer` return value.
+                        stack_size -= 4;
+                        scope.insert(inst, (INTEGER_POINTER, stack_size));
+                        program.push_str(&format!("    sw a0, {}(sp)\n", stack_size));
+                    }
+                    // scope.insert(inst, ());
+                    println!("    Function: {:?}:\n", value_data);
                     println!("    Call: {:?}:\n", func_call);
                 },
                 ValueKind::Return(val) => { // ret
                     match val.value() {
                         Some(x) => {
-                            let loader = load2register(&scope, &x, data_graph.value(x), "a0");
+                            let loader = load2register(&scope, &x, data_graph, "a0");
                             program.push_str(&loader);
-                            // get the correct return address and recover the stack pointer.
-                            program.push_str("    lw ra, <replace_with_return_address>(sp)\n");
-                            program.push_str("    addi sp, sp, <replace_with_stack_size>\n");
-                            program.push_str("    ret\n");
                         },
-                        None => {
-                            panic!("Return a none value?");
-                        },
+                        None => {},
                     }
+                    program.push_str(&format!("    lw ra, {}(sp)\n", mx_size - 4));
+                    // get the correct return address and recover the stack pointer.
+                    program.push_str(&format!("    addi sp, sp, {}\n", mx_size));
+                    program.push_str("    ret\n");
                 },
             }
         }
@@ -213,50 +278,99 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
 
 // 为什么impl不行, impl trait就行呢.
 impl GenerateAsmFunc for koopa::ir::FunctionData {
-    fn gen(&self, koopa: &Program) -> String {
-
-        let mut stack_size = 8;
-        let mut program = "".to_string();
-        // id -> (variable type, position in stack).
-        let mut scope: HashMap<Value, (i32, i32)> = HashMap::new();
-
-        // .globl main
-        program.push_str(&format!("    .globl {}\n", &self.name()[1..self.name().len()]));
-        program.push_str(&format!("{}:\n", &self.name()[1..self.name().len()]));
-
-        // save space for local variable.
-        program.push_str("    addi sp, sp, -<replace_with_stack_size>\n");
-        // save the `ra`, aka return address. sw ra, 0(sp)
-        program.push_str("    sw ra, <replace_with_return_address>(sp)\n");
-
+    fn gen(&self, koopa: &Program, scope: &mut HashMap<Value, (i32, i32)>, param_len: i32) -> String {
         if self.layout().bbs().len() == 0 { // `std` function, we don't cope with.
             return "".to_string();
+        }
+
+
+        let mut program = "".to_string();
+
+        // .globl main
+        program.push_str(&format!("    .text\n    .globl {}\n", &self.name()[1..self.name().len()]));
+        program.push_str(&format!("{}:\n", &self.name()[1..self.name().len()]));
+
+        // saved space for spilled parameter.
+        let mut stack_size = (param_len + calc_funcinstr(self) * 4) as i32;
+        stack_size += stack_size % 16;
+        let origin_stack_size = stack_size;
+
+        // save space for local variable.
+        program.push_str(&format!("    addi sp, sp, -{}\n", stack_size));
+        // save the `ra`, aka return address. sw ra, 0(sp)
+        stack_size -= 4;
+        program.push_str(&format!("    sw ra, {}(sp)\n", stack_size));
+
+
+        // load parameter.
+        for (i, param) in self.params().iter().enumerate() {
+            if i > 7 {
+                // wrong!!!!!!
+                // panic!("You have to calculate it previously.");
+                scope.insert(param.clone(), (INTEGER_POINTER, origin_stack_size + (4 * (i - 8) as i32)));
+            } else { // pass through a0-a7
+                stack_size -= 4;
+                scope.insert(param.clone(), (INTEGER_POINTER, stack_size));
+                program.push_str(&format!("    sw a{}, {}(sp)\n", i, stack_size));
+            }
         }
 
         for (&bb, node) in self.layout().bbs() {
             program.push_str(&format!("\n{}:\n", block2str(&bb)));
             // remember inherit the stack_size!
-            let ret_val = node.gen(&koopa, self, &mut scope, stack_size);
+            let ret_val = node.gen(&koopa, self, scope, stack_size, origin_stack_size);
             program.push_str(&ret_val.program);
             stack_size = ret_val.stack_size;
         }
-        stack_size += stack_size % 16;
         program.push_str("\n\n\n");
 
-        let program = str::replace(&program, "<replace_with_return_address>", &stack_size.to_string());
         // we have to replace stack_size.
-        return str::replace(&program, "<replace_with_stack_size>", &(stack_size + 4).to_string());
+        return program;
     }
 }
 
 
 
 pub fn generate (koopa_program: Program) -> String {
-    let mut program = "".to_string();
 
+    koopa::ir::Type::set_ptr_size(4); // set 32-bit machine.
+    
+    let mut program = "".to_string();
+    let f = koopa_program.borrow_values().clone();
+
+    // id -> (variable type, position in stack).
+    let mut scope: HashMap<Value, (i32, i32)> = HashMap::new();
+
+
+    // global variable initialize.
+    let mut glb_count = 0;
+    for glb_var in koopa_program.inst_layout() {
+        let data = f.get(glb_var).unwrap();
+        scope.insert(*glb_var, (GLOBAL_INTEGER, glb_count));
+        let name = format!("glb_var{}", glb_count); 
+        program.push_str(&format!("    .data\n    .globl {}\n{}:\n", &name, &name));
+
+        match data.kind() {
+            ValueKind::GlobalAlloc(val) => {
+                // must be integer now.
+                let x = load2data(&val.init(), f.get(&val.init()).unwrap());
+                program.push_str(&format!("    .word {}\n", x));
+                println!("{:?}\n", x);
+            },
+            _ => panic!("Global variable initialize error.")
+        }
+
+        glb_count += 1;
+        program.push_str("\n\n\n\n");
+    }
+
+    println!("{:?}\n", koopa_program.inst_layout());
+
+    let mut param_mxlen: i32 = 0;
     for &func in koopa_program.func_layout() {
         let func_data = koopa_program.func(func);
-        let ret_val = func_data.gen(&koopa_program);
+        param_mxlen = std::cmp::max(param_mxlen, (func_data.params().len() as i32) - 8);
+        let ret_val = func_data.gen(&koopa_program, &mut scope, param_mxlen);
         program.push_str(&ret_val);
     }
 
