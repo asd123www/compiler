@@ -6,6 +6,7 @@ use koopa::ir::BinaryOp;
 use koopa::ir::FunctionData;
 // use koopa::front::ast::Return;
 use koopa::ir::Program;
+use koopa::ir::Type;
 use koopa::ir::TypeKind;
 use koopa::ir::Value;
 // use koopa::ir::Value;
@@ -254,13 +255,17 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                 },
                 ValueKind::Load(load) => {
                     // let src = data_graph.value(load.src());
-                    let fragment = load2register(&scope, &load.src(), data_graph, "t1", true);
+                    let fragment = load2register(&scope, &load.src(), data_graph, "t1", value_data.ty().is_i32());
                     program.push_str(&fragment);
 
-                    stack_size -= MACHINE_BYTE; // only  wrong!!!.
-                    scope.insert(inst, (INTEGER_POINTER, stack_size));
-                    program.push_str(&riscv_sw("t1", "sp", stack_size));
-                    // program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
+                    stack_size -= MACHINE_BYTE; // only  wrong!!!
+                    if value_data.ty().is_i32() {
+                        scope.insert(inst, (INTEGER_POINTER, stack_size));
+                        program.push_str(&riscv_sw("t1", "sp", stack_size));
+                    } else {
+                        scope.insert(inst, (REAL_POINTER, stack_size));
+                        program.push_str(&riscv_sw("t1", "sp", stack_size));
+                    }
                 },
                 ValueKind::Store(store) => {
                     // # store 10, @x
@@ -270,21 +275,22 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     // let dst = ;
                     let pos = scope.get(&store.dest()).unwrap();
 
-                    let x = data_graph.value(store.dest()).ty();
+                    let not_pointer = data_graph.value(store.value()).ty().is_i32();
+                    // let x = data_graph.value(store.dest()).ty();
 
                     if pos.0 == INTEGER_POINTER  {
-                        let fragment = load2register(&scope, &store.value(), data_graph, "t1", true);
+                        let fragment = load2register(&scope, &store.value(), data_graph, "t1", not_pointer);
                         program.push_str(&fragment);
                         program.push_str(&riscv_sw("t1", "sp", pos.1));
                         // program.push_str(&format!("    sw t1, {}(sp)\n", pos.1));
                     } else if pos.0 == GLOBAL_INTEGER {
-                        let fragment = load2register(&scope, &store.value(), data_graph, "t1", true);
+                        let fragment = load2register(&scope, &store.value(), data_graph, "t1", not_pointer);
                         program.push_str(&fragment);
                         program.push_str(&format!("    la t2, glb_var{}\n", pos.1));
                         program.push_str(&riscv_sw("t1", "t2", 0));
                         // program.push_str(&format!("    sw t1, 0(t2)\n"));
                     } else if pos.0 == REAL_POINTER {
-                        let fragment = load2register(&scope, &store.value(), data_graph, "t1", true);
+                        let fragment = load2register(&scope, &store.value(), data_graph, "t1", not_pointer);
                         program.push_str(&fragment);
                         program.push_str(&riscv_lw("t2", "sp", pos.1)); // get pointer value.
                         // program.push_str(&format!("    lw t2, {}(sp)\n", pos.1));
@@ -456,11 +462,7 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                         scope.insert(inst, (INTEGER_POINTER, stack_size));
 
                         program.push_str(&riscv_sw("a0", "sp", stack_size));
-                        // program.push_str(&format!("    sw a0, {}(sp)\n", stack_size));
                     }
-                    // scope.insert(inst, ());
-                    // println!("    Function: {:?}:\n", value_data);
-                    // println!("    Call: {:?}:\n", func_call);
                 },
                 ValueKind::Return(val) => { // ret
                     match val.value() {

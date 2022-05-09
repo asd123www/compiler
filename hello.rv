@@ -4,22 +4,24 @@ init:
     addi sp, sp, -32
     sw ra, 28(sp)
     sw a0, 24(sp)
+    sw a1, 20(sp)
 
 BasicBlock1:
     addi t1, sp, 24
     lw t1, 0(t1)
-    lw t1, 0(t1)
-    sw t1, 20(sp)
-    lw t1, 20(sp)
     sw t1, 16(sp)
+    lw t1, 20(sp)
+    sw t1, 12(sp)
+    lw t1, 16(sp)
+    sw t1, 8(sp)
     li t1, 0
-    addi t0, sp, 16
+    addi t0, sp, 8
     li t2, 4
     mul t1, t1, t2
     add t0, t0, t1
-    sw t0, 12(sp)
+    sw t0, 4(sp)
     li t1, 0
-    lw t2, 12(sp)
+    lw t2, 4(sp)
     sw t1, 0(t2)
     lw ra, 28(sp)
     addi sp, sp, 32
@@ -30,24 +32,27 @@ BasicBlock1:
     .text
     .globl main
 main:
-    addi sp, sp, -72
-    sw ra, 68(sp)
+    addi sp, sp, -64
+    sw ra, 60(sp)
 
 BasicBlock2:
     li t1, 0
-    sw t1, 24(sp)
+    sw t1, 16(sp)
     li t1, 0
-    addi t0, sp, 28
+    addi t0, sp, 20
     li t2, 4
     mul t1, t1, t2
     add t0, t0, t1
-    sw t0, 20(sp)
-    addi a0, sp, 20
+    sw t0, 12(sp)
+    lw t1, 16(sp)
+    sw t1, 8(sp)
+    addi a0, sp, 12
     lw a0, 0(a0)
+    lw a1, 8(sp)
     call init
     li a0, 0
-    lw ra, 68(sp)
-    addi sp, sp, 72
+    lw ra, 60(sp)
+    addi sp, sp, 64
     ret
 
 
