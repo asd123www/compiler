@@ -1,6 +1,5 @@
 
 use core::panic;
-use std::error::Error;
 
 use koopa::ir::BasicBlock;
 use koopa::ir::BinaryOp;
@@ -18,7 +17,11 @@ use std::collections::HashMap;
 const MACHINE_BYTE: i32 = 4; // 32-bit machine.
 const GLOBAL_INTEGER: i32 = 0;
 const INTEGER_POINTER: i32 = 1;
+const ARRAY_POINTER: i32 = 2;
+const GLOBAL_ARRAY: i32 = 3;
+const REAL_POINTER: i32 = 4; // 我们必须明确区分指针变量和伪指针变量, 因为前者存储的数据是pointer, 后者一定是data.
 
+const SIGN_BITS: i32 = 7;
 // scope use the Value(pointer) to address, not the inherit `variable name`.
 // you should accept the API instead of your own convention to code easier.
 
@@ -31,9 +34,81 @@ fn block2str(bb: &BasicBlock) -> String {
 fn calc_funcinstr(func: &FunctionData) -> i32 {
     let mut size = 0;
     for (&_bb, node) in func.layout().bbs() {
-        size += node.insts().len() as i32;
+        // size += node.insts().len() as i32; // wrong!
+
+        for &inst in node.insts().keys() {
+            let value_data = func.dfg().value(inst);
+
+            size += match value_data.ty().kind() {
+                TypeKind::Pointer(_base) => _base.size() as i32,
+                _ => 4,
+            };
+        }
     }
     size
+}
+
+// corner case. overflow.
+fn riscv_addi(dst: &str, src: &str, imme: i32) -> String {
+    assert!(src != "t1");
+    let mut program = "".to_string();
+    if imme < -2048 || imme > 2047 {
+        program.push_str(&format!("    li t1, {}\n", imme));
+        program.push_str(&format!("    add {}, {}, t1\n", dst, src));
+    } else {
+        program.push_str(&format!("    addi {}, {}, {}\n", dst, src, &imme));
+    }
+    return program;
+}
+fn riscv_lw(dst: &str, src: &str, imme: i32) -> String {
+    assert!(src != "t3");
+    let mut program = "".to_string();
+    if imme < -2048 || imme > 2047 {
+        program.push_str(&format!("    li t3, {}\n", imme));
+        program.push_str(&format!("    add {}, {}, t3\n", src, src));
+        program.push_str(&format!("    lw {}, 0({})\n", dst, src));
+    } else {
+        program.push_str(&format!("    lw {}, {}({})\n", dst, imme, src));
+    }
+    return program;
+}
+fn riscv_sw(dst: &str, src: &str, imme: i32) -> String {
+    assert!(src != "t3");
+    let mut program = "".to_string();
+    if imme < -2048 || imme > 2047 {
+        program.push_str(&format!("    li t3, {}\n", imme));
+        program.push_str(&format!("    add {}, {}, t3\n", src, src));
+        program.push_str(&format!("    sw {}, 0({})\n", dst, src));
+    } else {
+        program.push_str(&format!("    sw {}, {}({})\n", dst, imme, src));
+    }
+    return program;
+}
+
+// idx must be store in `t1`.
+fn loadpointer2register(scope: &HashMap<Value, (i32, i32)>, pt: &Value, idx: &str, dst: &str, type_size: i32) -> String {
+    let mut program = "".to_string();
+    let var = scope.get(pt).unwrap();
+    assert!(idx == "t1");
+    if (var.0 & SIGN_BITS) == ARRAY_POINTER {
+        program.push_str(&riscv_addi("t0", "sp", var.1)); // load base.
+        // program.push_str(&format!("    addi t0, sp, {}\n", var.1)); 
+        // program.push_str(&format!("    li t2, {}\n    mul t1, t1, t2\n", type_size));
+        // program.push_str(&format!("    add {}, t0, t1\n", dst));
+    } else if (var.0 & SIGN_BITS) == GLOBAL_ARRAY {
+        program.push_str(&format!("    la t0, glb_var{}\n", var.1)); // load base.
+    } else {
+        assert!((var.0 & SIGN_BITS) == REAL_POINTER);
+        // wrong!!!, 我感觉没什么区别在riscv中. 
+        program.push_str(&riscv_addi("t0", "sp", var.1)); // load base.
+        // program.push_str(&format!("    addi t0, sp, {}\n", var.1)); // load base.
+        program.push_str(&riscv_lw("t0", "t0", 0));
+        // program.push_str("    lw t0, 0(t0)\n"); // get the pointer value to dst.
+    }
+    // idx * size
+    program.push_str(&format!("    li t2, {}\n    mul t1, t1, t2\n", type_size));
+    program.push_str(&format!("    add {}, t0, t1\n", dst));
+    return program;
 }
 
 // global variable and local var is different, you should treat them differently.
@@ -50,37 +125,68 @@ fn load2register(scope: &HashMap<Value, (i32, i32)>, pt: &Value, data_graph: &Da
             _ => {
                 let pos = is_local.unwrap();
                 assert!(pos.0 == INTEGER_POINTER);
-                program.push_str(&format!("    lw {}, {}(sp)\n", dst, pos.1))
+                program.push_str(&riscv_lw(dst, "sp", pos.1));
+                // program.push_str(&format!("    lw {}, {}(sp)\n", dst, pos.1))
             },
         }
-    } else {
+    } else  {
         // there must be a global definition. else crash.
-        let pos = is_local.unwrap(); 
-        assert!(pos.0 == GLOBAL_INTEGER);
-        // la t0, var
-        // lw t0, 0(t0)
-        program.push_str(&format!("    la {}, glb_var{}\n", dst, pos.1));
-        program.push_str(&format!("    lw {}, 0({})\n", dst, dst)); // integer.
+        let pos = is_local.unwrap();
+        // println!("    Query: {:?}:\n\n\n", pos);
+        if pos.0 == GLOBAL_INTEGER {
+            // la t0, var
+            // lw t0, 0(t0)
+            program.push_str(&format!("    la {}, glb_var{}\n", dst, pos.1));
+
+            program.push_str(&riscv_lw(dst, dst, 0));// integer.
+            // program.push_str(&format!("    lw {}, 0({})\n", dst, dst)); 
+        } else { 
+            assert!(pos.0 == REAL_POINTER);
+
+            program.push_str(&riscv_addi(dst, "sp", pos.1)); // load base.
+            // program.push_str(&format!("    addi {}, sp, {}\n", dst, pos.1)); // load base.
+            program.push_str(&riscv_lw(dst, dst, 0)); // get the pointer value.
+            program.push_str(&riscv_lw(dst, dst, 0)); // get the real value.
+            // program.push_str(&format!("    lw {}, 0({})\n", dst, dst)); 
+            // program.push_str(&format!("    lw {}, 0({})\n", dst, dst));
+        }
     }
     return program;
 }
 
-fn load2data(pt: &Value, val: &ValueData) -> String {
-    // println!("{:?}", pt);
-    let mut program = "".to_string();
-    match val.kind() {
+// multi-layer structure, dfs put to flat one.
+fn aggre_flatmap_datagraph(aggre: &ValueData, data_graph: &DataFlowGraph) -> Vec<i32> {
+    let mut res = Vec::new();
+    match aggre.kind() {
         ValueKind::Integer(var) => {
-            return var.value().to_string();
+            res.push(var.value());
         },
-        ValueKind::ZeroInit(val) => {
-            return "0".to_string();
+        ValueKind::Aggregate(var) => {
+            for x in var.elems() {
+                let mut ret_val = aggre_flatmap_datagraph(data_graph.value(x.clone()), data_graph);
+                res.append(&mut ret_val);
+            }
         },
-        _ => {
-            println!("Load2Data {:?}", val);
-            panic!("fuck off");
-        },
+        _ => panic!("Fuck off"),
     }
-    return program;
+    return res;
+}
+// multi-layer structure, dfs put to flat one.
+fn aggre_flatmap_hashmap(aggre: &ValueData, map: &HashMap<Value, ValueData>) -> Vec<i32> {
+    let mut res = Vec::new();
+    match aggre.kind() {
+        ValueKind::Integer(var) => {
+            res.push(var.value());
+        },
+        ValueKind::Aggregate(var) => {
+            for x in var.elems() {
+                let mut ret_val = aggre_flatmap_hashmap(map.get(&x).unwrap(), map);
+                res.append(&mut ret_val);
+            }
+        },
+        _ => panic!("Fuck off"),
+    }
+    return res;
 }
 
 
@@ -108,7 +214,11 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
         // 遍历指令列表
         for &inst in self.insts().keys() {
             let value_data = data_graph.value(inst);
-            // println!("{:?}\n", value_data);
+            // println!("asd123www: {:?}\n", value_data);
+            let type_size = match value_data.ty().kind() {
+                TypeKind::Pointer(_base) => _base.size() as i32,
+                _ => 0, // I don't care others, cause we'll not use it. 
+            };
             // 访问指令
             match value_data.kind() {
                 ValueKind::Integer(val) => {
@@ -130,13 +240,13 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     println!("    BlockArgRef: {:?}:\n", block_argref);
                 },
                 ValueKind::Alloc(_val) => {
-                    stack_size -= match value_data.ty().kind() {
-                        TypeKind::Pointer(_base) => MACHINE_BYTE,
-                        _ => panic!("Wrong type in Alloc"),
-                    };
-                    scope.insert(inst, (INTEGER_POINTER, stack_size));
-                    // println!("    Inst: {:?}:\n", value_data);
-                    // println!("    Alloc: {:?}:\n\n\n", val);
+                    // println!("    Alloc: {:?}\n{:?}\n\n\n", inst, value_data);
+                    stack_size -= type_size;
+                    if type_size == MACHINE_BYTE { // equal 4 -> int.
+                        scope.insert(inst, (INTEGER_POINTER, stack_size));
+                    } else {
+                        scope.insert(inst, (ARRAY_POINTER + type_size * 2, stack_size));
+                    }
                 },
                 ValueKind::GlobalAlloc(globl_alloc) => {
                     println!("    GlobalAlloc: {:?}:\n", globl_alloc);
@@ -148,31 +258,118 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
 
                     stack_size -= MACHINE_BYTE; // only  wrong!!!.
                     scope.insert(inst, (INTEGER_POINTER, stack_size));
-                    program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
+                    program.push_str(&riscv_sw("t1", "sp", stack_size));
+                    // program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
                 },
                 ValueKind::Store(store) => {
                     // # store 10, @x
                     // li t0, 10
-                    // sw t0, 0(sp)                      
+                    // sw t0, 0(sp)
                     // let src = data_graph.value(store.value());
                     // let dst = data_graph.value(store.dest());
                     let pos = scope.get(&store.dest()).unwrap();
 
-                    let fragment = load2register(&scope, &store.value(), data_graph, "t1");
-                    program.push_str(&fragment);
-                    if pos.0 == INTEGER_POINTER {
-                        program.push_str(&format!("    sw t1, {}(sp)\n", pos.1));
-                    } else {
-                        assert!(pos.0 == GLOBAL_INTEGER);
+                    if pos.0 == INTEGER_POINTER  {
+                        let fragment = load2register(&scope, &store.value(), data_graph, "t1");
+                        program.push_str(&fragment);
+                        program.push_str(&riscv_sw("t1", "sp", pos.1));
+                        // program.push_str(&format!("    sw t1, {}(sp)\n", pos.1));
+                    } else if pos.0 == GLOBAL_INTEGER {
+                        let fragment = load2register(&scope, &store.value(), data_graph, "t1");
+                        program.push_str(&fragment);
                         program.push_str(&format!("    la t2, glb_var{}\n", pos.1));
-                        program.push_str(&format!("    sw t1, 0(t2)\n"));
+                        program.push_str(&riscv_sw("t1", "t2", 0));
+                        // program.push_str(&format!("    sw t1, 0(t2)\n"));
+                    } else if pos.0 == REAL_POINTER {
+                        let fragment = load2register(&scope, &store.value(), data_graph, "t1");
+                        program.push_str(&fragment);
+                        program.push_str(&riscv_lw("t2", "sp", pos.1)); // get pointer value.
+                        // program.push_str(&format!("    lw t2, {}(sp)\n", pos.1));
+                        program.push_str(&riscv_sw("t1", "t2", 0));
+                        // program.push_str(&format!("    sw t1, 0(t2)\n"));
+                    } else {
+                        assert!((pos.0 & SIGN_BITS) == ARRAY_POINTER);
+                        // let fragment = load2register(&scope, &store.value(), data_graph, "t1");
+                        let size = pos.0 / (SIGN_BITS + 1);
+                        let aggre = data_graph.value(store.value());
+
+                        match aggre.kind() {
+                            ValueKind::ZeroInit(_val) => {
+                                for i in 0..size {
+                                    program.push_str(&format!("    li t1, {}\n", i));
+                                    let ret_val = loadpointer2register(scope, &store.dest(), "t1", "t0", 4);
+                                    program.push_str(&ret_val);
+                                    
+                                    program.push_str(&riscv_sw("x0", "t0", 0));
+                                    // program.push_str("    sw x0, 0(t0)\n"); // x0 = 0.
+                                }
+                            },
+                            ValueKind::Aggregate(vals) => {
+                                // println!("asd123www: {:?}\n", data_graph.value(vals.elems()[0]));
+                                let array = aggre_flatmap_datagraph(aggre, data_graph);
+                                // println!("asd123www: {:?}\n", &array);
+                                println!(" size:{},   array:{:?}\n ",size, array);
+                                assert!(size == (array.len() as i32));
+                                for (i, ele) in array.iter().enumerate() {
+                                    // get array position to `t0`.
+                                    program.push_str(&format!("    li t1, {}\n", i));
+                                    let ret_val = loadpointer2register(scope, &store.dest(), "t1", "t0", 4);
+                                    program.push_str(&ret_val);
+
+                                    // load data to register
+                                    program.push_str(&format!("    li t1, {}\n", ele));
+                                    program.push_str(&riscv_sw("t1", "t0", 0));
+                                    // program.push_str("    sw t1, 0(t0)\n");
+                                }
+                            },
+                            ValueKind::Integer(_) => todo!(),
+                            ValueKind::Undef(_) => todo!(),
+                            ValueKind::FuncArgRef(_) => todo!(),
+                            ValueKind::BlockArgRef(_) => todo!(),
+                            ValueKind::Alloc(_) => todo!(),
+                            ValueKind::GlobalAlloc(_) => todo!(),
+                            ValueKind::Load(_) => todo!(),
+                            ValueKind::Store(_) => todo!(),
+                            ValueKind::GetPtr(_) => todo!(),
+                            ValueKind::GetElemPtr(_) => todo!(),
+                            ValueKind::Binary(_) => todo!(),
+                            ValueKind::Branch(_) => todo!(),
+                            ValueKind::Jump(_) => todo!(),
+                            ValueKind::Call(_) => todo!(),
+                            ValueKind::Return(_) => todo!(),
+                        }
                     }
                 },
+                // 吃了这么多屎, 我终于感觉到在最后一步, 结构化的IR表示中内嵌了当前指针的类型, 让我写这两个指令无比轻松.
+                // 如果没有强类型, 这一步会很麻烦.
                 ValueKind::GetPtr(getptr) => {
-                    println!("    GetPtr: {:?}:\n", getptr);
+
+                    // println!("    GetPtr: {:?}:\n", value_data);
                 },
                 ValueKind::GetElemPtr(getelemptr) => {
-                    println!("    GetElemPtr: {:?}:\n", getelemptr);
+                    // go to subtype.
+                    let src = getelemptr.src();
+                    let idx = getelemptr.index();
+
+                    let idx_str = load2register(scope, &idx, data_graph, "t1");
+                    program.push_str(&idx_str);
+                    let pt_str = loadpointer2register(scope, &src, "t1", "t0", type_size);
+                    program.push_str(&pt_str);
+
+                    stack_size -= MACHINE_BYTE;
+
+                    // the fucking wrong code.
+                    // program.push_str(&format!("    lw t0, 0(t0)\n    sw t0, {}(sp)\n", stack_size));
+                    // store the pointer.
+
+                    program.push_str(&riscv_sw("t0", "sp", stack_size));
+                    // program.push_str(&format!("    sw t0, {}(sp)\n", stack_size));
+                    scope.insert(inst, (REAL_POINTER, stack_size)); // after one shift, you are an ordinary array.
+                    // wrong!!!
+                    // println!("    src: {:?}\n", data_graph.value(src));
+                    // println!("    idx: {:?}\n", data_graph.value(idx));
+                    // println!("    GetElemPtr: {:?}\n", value_data);
+                    // panic!("not implemented");
                 },
                 ValueKind::Binary(binary) => {
                     let lhs = binary.lhs();
@@ -206,7 +403,9 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     
                     stack_size -= MACHINE_BYTE;
                     scope.insert(inst, (INTEGER_POINTER, stack_size));
-                    program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
+
+                    program.push_str(&riscv_sw("t1", "sp", stack_size));
+                    // program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
 
                     // println!("    Binary: {:?}:\n", binary);
                 },
@@ -241,7 +440,8 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                         let ret_val = load2register(scope, arg, data_graph, &dst);
                         program.push_str(&ret_val);
                         if i > 7 { // spilled
-                            program.push_str(&format!("    sw t1, {}(sp)\n", (i - 8) * 4));
+                            program.push_str(&riscv_sw("t1", "sp", ((i - 8) * 4) as i32));
+                            // program.push_str(&format!("    sw t1, {}(sp)\n", (i - 8) * 4));
                         }
                     }
                     // call function.
@@ -250,7 +450,9 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                         // we only have `integer` return value.
                         stack_size -= 4;
                         scope.insert(inst, (INTEGER_POINTER, stack_size));
-                        program.push_str(&format!("    sw a0, {}(sp)\n", stack_size));
+
+                        program.push_str(&riscv_sw("a0", "sp", stack_size));
+                        // program.push_str(&format!("    sw a0, {}(sp)\n", stack_size));
                     }
                     // scope.insert(inst, ());
                     println!("    Function: {:?}:\n", value_data);
@@ -264,9 +466,12 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                         },
                         None => {},
                     }
-                    program.push_str(&format!("    lw ra, {}(sp)\n", mx_size - 4));
+                    
+                    program.push_str(&riscv_lw("ra", "sp", mx_size - 4));
+                    // program.push_str(&format!("    lw ra, {}(sp)\n", mx_size - 4));
                     // get the correct return address and recover the stack pointer.
-                    program.push_str(&format!("    addi sp, sp, {}\n", mx_size));
+                    program.push_str(&riscv_addi("sp", "sp", mx_size));
+                    // program.push_str(&format!("    addi sp, sp, {}\n", mx_size));
                     program.push_str("    ret\n");
                 },
             }
@@ -276,13 +481,17 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
     }
 }
 
+
+
+
+
+
 // 为什么impl不行, impl trait就行呢.
 impl GenerateAsmFunc for koopa::ir::FunctionData {
     fn gen(&self, koopa: &Program, scope: &mut HashMap<Value, (i32, i32)>, param_len: i32) -> String {
         if self.layout().bbs().len() == 0 { // `std` function, we don't cope with.
             return "".to_string();
         }
-
 
         let mut program = "".to_string();
 
@@ -291,27 +500,28 @@ impl GenerateAsmFunc for koopa::ir::FunctionData {
         program.push_str(&format!("{}:\n", &self.name()[1..self.name().len()]));
 
         // saved space for spilled parameter.
-        let mut stack_size = (param_len + calc_funcinstr(self) * 4) as i32;
+        let mut stack_size = param_len * 4 + calc_funcinstr(self);
         stack_size += stack_size % 16;
         let origin_stack_size = stack_size;
 
         // save space for local variable.
-        program.push_str(&format!("    addi sp, sp, -{}\n", stack_size));
+        program.push_str(&riscv_addi("sp", "sp", -stack_size));
+        // program.push_str(&format!("    addi sp, sp, -{}\n", stack_size));
         // save the `ra`, aka return address. sw ra, 0(sp)
         stack_size -= 4;
-        program.push_str(&format!("    sw ra, {}(sp)\n", stack_size));
+        program.push_str(&riscv_sw("ra", "sp", stack_size));
+        // program.push_str(&format!("    sw ra, {}(sp)\n", stack_size));
 
 
         // load parameter.
         for (i, param) in self.params().iter().enumerate() {
             if i > 7 {
-                // wrong!!!!!!
-                // panic!("You have to calculate it previously.");
                 scope.insert(param.clone(), (INTEGER_POINTER, origin_stack_size + (4 * (i - 8) as i32)));
             } else { // pass through a0-a7
                 stack_size -= 4;
                 scope.insert(param.clone(), (INTEGER_POINTER, stack_size));
-                program.push_str(&format!("    sw a{}, {}(sp)\n", i, stack_size));
+                program.push_str(&riscv_sw(&format!("a{}", i), "sp", stack_size));
+                // program.push_str(&format!("    sw a{}, {}(sp)\n", i, stack_size));
             }
         }
 
@@ -339,6 +549,7 @@ pub fn generate (koopa_program: Program) -> String {
     let f = koopa_program.borrow_values().clone();
 
     // id -> (variable type, position in stack).
+    // variable type is small, so high bits compress the array length.
     let mut scope: HashMap<Value, (i32, i32)> = HashMap::new();
 
 
@@ -346,16 +557,36 @@ pub fn generate (koopa_program: Program) -> String {
     let mut glb_count = 0;
     for glb_var in koopa_program.inst_layout() {
         let data = f.get(glb_var).unwrap();
-        scope.insert(*glb_var, (GLOBAL_INTEGER, glb_count));
+        
+        println!("asd123www: {:?}\n", data);
+
         let name = format!("glb_var{}", glb_count); 
         program.push_str(&format!("    .data\n    .globl {}\n{}:\n", &name, &name));
 
         match data.kind() {
             ValueKind::GlobalAlloc(val) => {
                 // must be integer now.
-                let x = load2data(&val.init(), f.get(&val.init()).unwrap());
-                program.push_str(&format!("    .word {}\n", x));
-                println!("{:?}\n", x);
+                let vals = f.get(&val.init()).unwrap();
+                let type_size = vals.ty().size();
+
+                match vals.kind() {
+                    ValueKind::ZeroInit(_val) => {
+                        program.push_str(&format!("    .zero {}\n", type_size));
+                    },
+                    ValueKind::Aggregate(aggre) => {
+                        let array = aggre_flatmap_hashmap(vals, &f);
+                        for ele in array {
+                            program.push_str(&format!("    .word {}\n", &ele));
+                        }
+                    },
+                    _ => panic!("Global variable initialize error."),
+                }
+
+                if type_size == 4 {
+                    scope.insert(*glb_var, (GLOBAL_INTEGER, glb_count));
+                } else {
+                    scope.insert(*glb_var, (GLOBAL_ARRAY, glb_count));
+                }
             },
             _ => panic!("Global variable initialize error.")
         }
@@ -364,7 +595,7 @@ pub fn generate (koopa_program: Program) -> String {
         program.push_str("\n\n\n\n");
     }
 
-    println!("{:?}\n", koopa_program.inst_layout());
+    println!("asd123www: {:?}\n", koopa_program.inst_layout());
 
     let mut param_mxlen: i32 = 0;
     for &func in koopa_program.func_layout() {

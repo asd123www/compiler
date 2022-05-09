@@ -77,3 +77,8 @@ use the biset, maximum parameter number is 29.
 ### how to reference variable
 scope use the Value(pointer) to address, not the inherit `variable name`.
 you should accept the API instead of your own convention to code easier.
+
+
+### Lesson learned
+
+Write as many asserts as you can

@@ -10,31 +10,70 @@ decl @stoptime()
 
 
 
-global @var_10 = alloc i32, 10
 
 
-fun @inc(): i32 {
+fun @f1d(@arr: *i32) {
 
-%entry_12:
-    %var_13 = load @var_10
-    %var_20 = add %var_13, 1
-    store %var_20, @var_10
-    %var_25 = load @var_10
-    ret %var_25
+%entry_3:
+    @var_1 = alloc *i32
+    store @arr, @var_1
+    @var_13 = alloc i32
+    store 0, @var_13
+    jump %entry_57
 
-%entry_33:
-    ret 0
+%entry_57:
+    %var_14 = load @var_13
+    %var_23 = lt %var_14, 10
+    br %var_23, %entry_58, %entry_59
+
+%entry_58:
+    %var_27 = load @var_13
+    %var_35 = load @var_1
+    %var_36 = getptr %var_35, %var_27
+    %var_37 = load @var_13
+    store %var_37, %var_36
+    %var_45 = load @var_13
+    %var_52 = add %var_45, 1
+    store %var_52, @var_13
+    jump %entry_57
+
+%entry_59:
+    ret
 }
 
 
 
 
-fun @print_a() {
+fun @f2d(@arr: *[i32, 10]) {
 
-%entry_35:
-    %var_36 = load @var_10
-    call @putint(%var_36)
-    call @putch(10)
+%entry_86:
+    @var_72 = alloc *[i32, 10]
+    store @arr, @var_72
+    %var_95 = load @var_72
+    %var_96 = getptr %var_95, 1
+    %var_105 = getelemptr %var_96, 2
+    store 3, %var_105
+    @var_123 = alloc i32
+    store 0, @var_123
+    jump %entry_173
+
+%entry_173:
+    %var_124 = load @var_123
+    %var_133 = lt %var_124, 10
+    br %var_133, %entry_174, %entry_175
+
+%entry_174:
+    %var_137 = load @var_123
+    %var_145 = load @var_72
+    %var_146 = getptr %var_145, %var_137
+    %var_147 = getelemptr %var_146, 0
+    call @f1d(%var_147)
+    %var_161 = load @var_123
+    %var_168 = add %var_161, 1
+    store %var_168, @var_123
+    jump %entry_173
+
+%entry_175:
     ret
 }
 
@@ -43,36 +82,10 @@ fun @print_a() {
 
 fun @main(): i32 {
 
-%entry_65:
-    @var_75 = alloc i32
-    store 0, @var_75
-    jump %entry_164
+%entry_177:
+    ret 33
 
-%entry_164:
-    %var_76 = load @var_75
-    %var_85 = lt %var_76, 10
-    br %var_85, %entry_165, %entry_166
-
-%entry_165:
-    %var_89 = call @inc()
-    @var_105 = alloc i32
-    store 1, @var_105
-    %var_106 = load @var_105
-    %var_113 = add %var_106, 2
-    store %var_113, @var_105
-    %var_118 = load @var_105
-    call @putint(%var_118)
-    call @putch(10)
-    call @print_a()
-    %var_152 = load @var_75
-    %var_159 = add %var_152, 1
-    store %var_159, @var_75
-    jump %entry_164
-
-%entry_166:
-    ret 0
-
-%entry_175:
+%entry_186:
     ret 0
 }
 
