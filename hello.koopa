@@ -12,68 +12,14 @@ decl @stoptime()
 
 
 
-fun @f1d(@arr: *i32) {
+fun @init(@arr: *i32) {
 
 %entry_3:
     @var_1 = alloc *i32
     store @arr, @var_1
-    @var_13 = alloc i32
-    store 0, @var_13
-    jump %entry_57
-
-%entry_57:
-    %var_14 = load @var_13
-    %var_23 = lt %var_14, 10
-    br %var_23, %entry_58, %entry_59
-
-%entry_58:
-    %var_27 = load @var_13
-    %var_35 = load @var_1
-    %var_36 = getptr %var_35, %var_27
-    %var_37 = load @var_13
-    store %var_37, %var_36
-    %var_45 = load @var_13
-    %var_52 = add %var_45, 1
-    store %var_52, @var_13
-    jump %entry_57
-
-%entry_59:
-    ret
-}
-
-
-
-
-fun @f2d(@arr: *[i32, 10]) {
-
-%entry_86:
-    @var_72 = alloc *[i32, 10]
-    store @arr, @var_72
-    %var_95 = load @var_72
-    %var_96 = getptr %var_95, 1
-    %var_105 = getelemptr %var_96, 2
-    store 3, %var_105
-    @var_123 = alloc i32
-    store 0, @var_123
-    jump %entry_173
-
-%entry_173:
-    %var_124 = load @var_123
-    %var_133 = lt %var_124, 10
-    br %var_133, %entry_174, %entry_175
-
-%entry_174:
-    %var_137 = load @var_123
-    %var_145 = load @var_72
-    %var_146 = getptr %var_145, %var_137
-    %var_147 = getelemptr %var_146, 0
-    call @f1d(%var_147)
-    %var_161 = load @var_123
-    %var_168 = add %var_161, 1
-    store %var_168, @var_123
-    jump %entry_173
-
-%entry_175:
+    %var_12 = load @var_1
+    %var_13 = getptr %var_12, 0
+    store 0, %var_13
     ret
 }
 
@@ -82,10 +28,15 @@ fun @f2d(@arr: *[i32, 10]) {
 
 fun @main(): i32 {
 
-%entry_177:
-    ret 33
+%entry_23:
+    @var_32 = alloc [i32, 10]
+    @var_42 = alloc i32
+    store 0, @var_42
+    %var_43 = getelemptr @var_32, 0
+    call @init(%var_43)
+    ret 0
 
-%entry_186:
+%entry_65:
     ret 0
 }
 

@@ -1,20 +1,14 @@
-void f1d(int arr[]) {
-  int i = 0;
-  while (i < 10) {
-    arr[i] = i;
-    i = i + 1;
-  }
-}
-
-void f2d(int arr[][8 + 2]) {
-  arr[1][2] = 3;
-  int i = 0;
-  while (i < 10) {
-    f1d(arr[i]);
-    i = i + 1;
-  }
+void init(int arr[]) {
+  arr[0] = 0;
 }
 
 int main() {
-  return 33;
+  int arr[10], sum = 0;
+  init(arr);
+  // int i = 0;
+  // while (i < 10) {
+  //   putint(arr[i]);
+  //   i = i + 1;
+  // }
+  return 0;
 }
