@@ -12,6 +12,14 @@ use crate::koopa_ir_gen::declare::DeclResult;
 use crate::koopa_ir_gen::declare::evaluate_dimension;
 // use self::expression::ExpResult;
 
+/*
+ * 最外层的compiler, 我们应该top-down看. 
+ *  
+ * 最重要的数据结构: scope: HashMap<String, (i32, i32)>
+ * 根据名字(string), 得到(type, param). type指明了类型, 例如integer, array, void, consntant等.
+ * 第二维param维护额外信息, 例如type为integer, param指定var_param为地址.
+ *                          type为function, param指定参数的类型是否为array.
+ */
 
 // return variable name based on whether it's constant or not.
 fn get_name(id: i32, is_constant: bool) -> String {
@@ -22,6 +30,7 @@ fn get_name(id: i32, is_constant: bool) -> String {
     }
 }
 
+// 计算函数的bitset.
 fn calc_bitset(node: &FuncDef) -> i32 {
     match &node.params {
         None => {0},
@@ -56,6 +65,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (i32, i32)>, size: i32) -> BodyRetTy
     // consider the indent!
     let mut size = size;
     let mut program = String::from("");
+    // 变量作用域的主要实现: 每递归一层, clone scope, 之后插入的variable会发生replace.
     let mut scope: HashMap<String, (i32, i32)> = par.clone(); // inherit the variables from parent.
 
     match pt {
@@ -83,6 +93,7 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (i32, i32)>, size: i32) -> BodyRetTy
                         let func_val = dfs(TreePoint::FuncDef(func), &scope, size);
                         program.push_str(&func_val.program);
 
+                        // 保证计算param bitset的正确性.
                         assert!(bitset == func_val.exp_res_id);
 
                         size = func_val.size;
@@ -118,6 +129,8 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (i32, i32)>, size: i32) -> BodyRetTy
                         // store @x, %x
                         // we only have i32, hhhh.
                         match x {
+                            // 使用之后的参数, 我们先把参数和普通变量一样定义, 这样之后就不用区分了.
+                            // 增加了overhead...
                             FuncFParam::Integer(ident) => {
                                 size += 1;
                                 load_params.push_str(&format!("    @var_{} = alloc i32\n", size));
@@ -267,7 +280,8 @@ fn dfs(pt: TreePoint, par: &HashMap<String, (i32, i32)>, size: i32) -> BodyRetTy
 
 pub fn generator(start: CompUnit) -> String {
     let size = 0;
-// global @var = alloc i32, 12\n\n
+
+// extern variable我们需要手动定义一下.
     let mut program = "
 decl @getint(): i32
 decl @getch(): i32

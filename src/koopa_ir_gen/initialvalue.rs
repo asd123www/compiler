@@ -3,6 +3,10 @@ use std::{collections::HashMap};
 use crate::ast::*;
 use super::{ret_types::InitRetType, expression::ExpResult};
 
+/* 
+ * 由于数组的存在, 我们单独把InitValue求值拿出来. 
+ * decl var = InitValue, 我们的任务就是把InitValue的值求出来, 返回给decl语句进行初始化.
+ */
 
 pub trait InitValue {
     fn eval(&self, scope: &HashMap<String, (i32, i32)>, size:i32, dims: &[i32]) -> InitRetType;

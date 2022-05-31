@@ -6,6 +6,11 @@ use crate::koopa_ir_gen::{*};
 // 1. assign unique id to node for unique variable name.
 // 2. attach a `ret` to struct store the result ID.
 
+/*
+ * 这里应该非常straight forward没有什么难度.
+ * 主要是处理指针, 由于我们scope里面维护了var的类型, 枚举各种情况作对应的操作即可.
+ * 
+ */
 pub trait ExpResult {
     fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32, is_pt: bool) -> ExpRetType;
 }
@@ -93,15 +98,14 @@ impl ExpResult for PrimaryExp {
                     is_constant: ret_val.is_constant,
                 };
             },
+            // 最基本的情况, 是一个数字.
             PrimaryExp::Num(num) => {
                 // constant, we don't need variable.
-                // program.push_str(&format!("    %var_{} = add 0, {}\n", size + 1, num));
-
                 return ExpRetType {
                     size: size + 1,
                     program: program,
                     exp_res_id: *num,
-                    is_constant: true,
+                    is_constant: true, // 标记为1.
                 };
             }
             PrimaryExp::Lval(lval) => {
