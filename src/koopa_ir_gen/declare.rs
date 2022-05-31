@@ -22,7 +22,6 @@ impl DeclResult for BlockItem {
                 return DeclRetType {
                     size: statement.size,
                     program: statement.program,
-                    flag: statement.exp_res_id,
                 };
             },
             BlockItem::Decl(decl) => {
@@ -60,7 +59,7 @@ impl DeclResult for ConstDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program, flag: 0};
+        return DeclRetType{size, program};
     }
 }
 
@@ -75,7 +74,7 @@ impl DeclResult for VarDecl {
             program.push_str(&ret_val.program);
             size = ret_val.size;
         }
-        return DeclRetType{size, program, flag: 0};
+        return DeclRetType{size, program};
     }
 }
 
@@ -170,7 +169,7 @@ impl DeclResult for ConstDef {
             assert!(ret_val.val.len() == 1);
             // the constant's value is the expression.
             scope.insert(format!("{}", self.ident), (CONSTANT_INT, ret_val.val[0].1));
-            return DeclRetType {size, program: ret_val.program, flag: 0};
+            return DeclRetType {size, program: ret_val.program};
         }
 
         // array.
@@ -194,7 +193,7 @@ impl DeclResult for ConstDef {
             program.push_str(&format!("    @var_{} = alloc {}\n", size + 1, &dim_str));
             program.push_str(&format!("    store {}, @var_{}\n", init_value_str, size + 1));
         }
-        return DeclRetType {size: size + 1, program: program, flag: 0};
+        return DeclRetType {size: size + 1, program: program};
     }
 }
 
@@ -221,7 +220,7 @@ impl DeclResult for VarDef {
                         // global @var = alloc i32, zeroinit
                         program.push_str(&format!("global @var_{} = alloc i32, zeroinit\n", size + 1)); // currently only i32.
                     }
-                    return DeclRetType {size: size + 1, program, flag: 0};
+                    return DeclRetType {size: size + 1, program};
                 }
 
                 scope.insert(format!("{}", ident), (VARIABLE_ARRAY, size + 1));
@@ -234,7 +233,7 @@ impl DeclResult for VarDef {
                     // store {1, 2, 3, 0, 0}, @arr
                     program.push_str(&format!("    @var_{} = alloc {}\n", size + 1, &dim_str));
                 }
-                return DeclRetType {size: size + 1, program, flag: 0};
+                return DeclRetType {size: size + 1, program};
             },
 
             VarDef::Identinitval(ident, dims, initval) => {
@@ -263,7 +262,7 @@ impl DeclResult for VarDef {
                         // @x = alloc i32
                         program.push_str(&format!("global @var_{} = alloc i32, {}\n", size + 1, ret_val.val[0].1)); // currently only i32.
                     }
-                    return DeclRetType {size: size + 1, program, flag: 0};
+                    return DeclRetType {size: size + 1, program};
                 }
 
                 // array.
@@ -278,7 +277,7 @@ impl DeclResult for VarDef {
                     program.push_str(&format!("    store {}, @var_{}\n", init_value_str, size + 1));
                 }
 
-                return DeclRetType {size: size + 1, program, flag: 0};
+                return DeclRetType {size: size + 1, program};
             },
         }
     }
