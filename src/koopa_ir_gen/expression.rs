@@ -17,6 +17,7 @@ pub trait ExpResult {
 
 
 // --------------------------------------- lv3 ------------------------------------------------
+// 参数的赋值, 可能为数组的某一个值. 枚举情况处理, 没什么好说的.
 // LVal          ::= IDENT {"[" Exp "]"};
 impl ExpResult for LVal {
     fn eval(&self, scope: &HashMap<String, (i32, i32)>, size: i32, _is_pt: bool) -> ExpRetType {
@@ -171,6 +172,8 @@ impl ExpResult for UnaryExp {
                     is_constant: ret_val.is_constant,
                 };
             },
+            // 这里在处理function call.
+            // 先evaluate每个传入的参数, 这里要根据参数的类型, 之后排版调用即可.
             UnaryExp::Funcall(ident, params) => {
                 // %0 = call @half(10)
                 // is it return type `void` or `int`?
@@ -272,6 +275,14 @@ impl ExpResult for UnaryExp {
 }
 
 
+
+
+// --------------------------------------------------------------------
+/*
+ * 这下面就是普通的一元/二元运算, 二元运算唯一的不同是operator不同, 因此抽象出
+ * `binary_operation` 这个函数降低代码复杂度.
+ * 同时rust在match中也非常好的支持了match情况的合并, 因此大大增加了代码的可读性.
+ */
 fn binary_operation(program: &mut String, size: &mut i32, op: &str, val1: &ExpRetType, val2: &ExpRetType) -> i32 {
 
     // 太尼玛丑了.

@@ -7,6 +7,14 @@ use crate::{koopa_ir_gen::expression::ExpResult, ast::{*}};
 
 use super::{TreePoint, ret_types::ExpRetType, dfs};
 
+/*
+ * 这个文件里主要处理表达式原语.
+ * 比如`if`, `if-else`, `while`等语句在这里处理. 
+ * 当然最普通的语句包含在Stmt中, 返回语句, 赋值语句等.
+ * 值得一提的是对于`break`和`continue`的处理, 在低层次的语句中写入<replace_with_xxx>.
+ *      在最高层直接用string的replace, 这样层层replace得到正确的结果, 并且极大的降低了编程复杂度.
+ *      但是唯一的问题是时间复杂度的常数增加了, 多一个线性, 但是时间复杂度相同.
+ */
 
 // statement: open_statement
 //          | closed_statement
@@ -211,12 +219,10 @@ impl Stmt {
                     is_constant: false,
                 }
             },
-
             Stmt::SingleExp(exp) => {
                 let ret_val = exp.eval(scope, size, false);
                 ret_val
             },
-
             Stmt::Block(block) => {
                 let ret_val = dfs(TreePoint::Block(block), &scope, size);
 
@@ -227,14 +233,12 @@ impl Stmt {
                     is_constant: false,
                 };
             },
-
             Stmt::ZeroExp() => {
                 ExpRetType {
                     size, program, exp_res_id: 0, 
                     is_constant: false,
                 }
-            }
-
+            },
             Stmt::BreakKeyWord() => { // give `while` a hint, it'll replace it with `jump`.
                 program.push_str("    <replace_me_with_break>\n");
                 program.push_str(&format!("\n%entry_{}:\n", size + 1));
@@ -242,7 +246,7 @@ impl Stmt {
                     size: size + 1, program, exp_res_id: 0, 
                     is_constant: false,
                 }
-            }
+            },
             Stmt::ContinueKeyWord() => {
                 program.push_str("    <replace_me_with_continue>\n");
                 program.push_str(&format!("\n%entry_{}:\n", size + 1));

@@ -6,7 +6,6 @@ use koopa::ir::BinaryOp;
 use koopa::ir::FunctionData;
 // use koopa::front::ast::Return;
 use koopa::ir::Program;
-use koopa::ir::Type;
 use koopa::ir::TypeKind;
 use koopa::ir::Value;
 // use koopa::ir::Value;
@@ -26,6 +25,13 @@ const SIGN_BITS: i32 = 7;
 // scope use the Value(pointer) to address, not the inherit `variable name`.
 // you should accept the API instead of your own convention to code easier.
 
+/*
+ * koopa ir -> RiscV
+ * 主要的难度在于理解koopa-IR的表示, 其提供了丰富的信息, 但是需要我们自己去找如何使用.
+ *      个人的开发经验: Rust中的`#[derive(Debug)]`太好用了, 直接输出对象, 则我们可以很清晰的找到所需要的信息.
+ * 
+ * 
+ */
 
 fn block2str(bb: &BasicBlock) -> String {
     let name = format!("{:?}", bb);
@@ -52,6 +58,8 @@ fn calc_funcinstr(func: &FunctionData) -> i32 {
     size
 }
 
+
+// 使用空闲的register来保存跳转的值, 解决RiscV的立即数太小问题.
 // corner case. overflow.
 fn riscv_addi(dst: &str, src: &str, imme: i32) -> String {
     assert!(src != "t1");
@@ -313,7 +321,7 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                                     // program.push_str("    sw x0, 0(t0)\n"); // x0 = 0.
                                 }
                             },
-                            ValueKind::Aggregate(vals) => {
+                            ValueKind::Aggregate(_vals) => {
                                 // println!("asd123www: {:?}\n", data_graph.value(vals.elems()[0]));
                                 let array = aggre_flatmap_datagraph(aggre, data_graph);
                                 // println!("asd123www: {:?}\n", &array);
@@ -351,7 +359,6 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     stack_size -= MACHINE_BYTE;
 
                     program.push_str(&riscv_sw("t0", "sp", stack_size));
-                    // program.push_str(&format!("    sw t0, {}(sp)\n", stack_size));
                     scope.insert(inst, (REAL_POINTER, stack_size)); // after one shift, you are an ordinary array.
                     // println!("    GetPtr: {:?}:\n", value_data);
                 },
@@ -367,18 +374,8 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
 
                     stack_size -= MACHINE_BYTE;
 
-                    // the fucking wrong code.
-                    // program.push_str(&format!("    lw t0, 0(t0)\n    sw t0, {}(sp)\n", stack_size));
-                    // store the pointer.
-
                     program.push_str(&riscv_sw("t0", "sp", stack_size));
-                    // program.push_str(&format!("    sw t0, {}(sp)\n", stack_size));
                     scope.insert(inst, (REAL_POINTER, stack_size)); // after one shift, you are an ordinary array.
-                    // wrong!!!
-                    // println!("    src: {:?}\n", data_graph.value(src));
-                    // println!("    idx: {:?}\n", data_graph.value(idx));
-                    // println!("    GetElemPtr: {:?}\n", value_data);
-                    // panic!("not implemented");
                 },
                 ValueKind::Binary(binary) => {
                     let lhs = binary.lhs();
@@ -414,9 +411,6 @@ impl GenerateAsm for koopa::ir::layout::BasicBlockNode {
                     scope.insert(inst, (INTEGER_POINTER, stack_size));
 
                     program.push_str(&riscv_sw("t1", "sp", stack_size));
-                    // program.push_str(&format!("    sw t1, {}(sp)\n", stack_size));
-
-                    // println!("    Binary: {:?}:\n", binary);
                 },
                 ValueKind::Branch(br) => {
                     let br_true = block2str(&br.true_bb());
@@ -589,7 +583,7 @@ pub fn generate (koopa_program: Program) -> String {
                     ValueKind::ZeroInit(_val) => {
                         program.push_str(&format!("    .zero {}\n", type_size));
                     },
-                    ValueKind::Aggregate(aggre) => {
+                    ValueKind::Aggregate(_aggre) => {
                         let array = aggre_flatmap_hashmap(vals, &f);
                         for ele in array {
                             program.push_str(&format!("    .word {}\n", &ele));

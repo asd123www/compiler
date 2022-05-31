@@ -7,6 +7,11 @@ use crate::koopa_ir_gen::initialvalue::InitValue;
 use crate::koopa_ir_gen::{*};
 use super::ret_types::InitRetType;
 
+/*
+ * decl, 声明变量.
+ * 例如数组, integer变量等.
+ * 这里对于global和non-global还得分开处理...
+ */
 
 pub trait DeclResult {
     fn eval(&self, scope: &mut HashMap<String, (i32, i32)>, size: i32, is_global: bool) -> DeclRetType;
@@ -108,15 +113,7 @@ pub fn evaluate_dimension(size: &mut i32, exps: & Vec<ConstExp>, scope: &HashMap
 
 
 
-
-
-// pub struct InitRetType {
-//     pub size: i32,
-//     pub program: String,
-//     pub is_allzero: bool,
-//     pub val: Vec<(bool, i32)>,
-// }
-
+// 吧这个东西铺开... {{}, {}, {}} ...
 fn get_const_init_value_str(p: &InitRetType, dims: &Vec<i32>) -> String {
     if p.is_allzero {
         return "zeroinit".to_string();
@@ -148,10 +145,6 @@ fn get_const_init_value_str(p: &InitRetType, dims: &Vec<i32>) -> String {
 
     dfs(0, 0, p.val.len() - 1, p, dims)
 }
-
-// fn array_init(dims: &Vec<i32>, is_global: bool) {
-
-// }
 
 
 // ConstDef ::= IDENT {"[" ConstExp "]"} "=" ConstInitVal
@@ -255,7 +248,7 @@ impl DeclResult for VarDef {
                         program.push_str(&format!("    @var_{} = alloc i32\n", size + 1)); // currently only i32.
                         // assignment: store %1, @x
                         program.push_str(&format!("    store {}, @var_{}\n", name, size + 1)); // currently only i32.
-                    } else {
+                    } else { // global的初始值必须是constant.
                         assert!(ret_val.val[0].0 == true); // must be constant.
                         // define.
                         scope.insert(format!("{}", ident), (VARIABLE_INT, size + 1));
