@@ -65,8 +65,8 @@ fn riscv_addi(dst: &str, src: &str, imme: i32) -> String {
     assert!(src != "t1");
     let mut program = "".to_string();
     if imme < -2048 || imme > 2047 {
-        program.push_str(&format!("    li t1, {}\n", imme));
-        program.push_str(&format!("    add {}, {}, t1\n", dst, src));
+        program.push_str(&format!("    li t3, {}\n", imme));
+        program.push_str(&format!("    add {}, {}, t3\n", dst, src));
     } else {
         program.push_str(&format!("    addi {}, {}, {}\n", dst, src, &imme));
     }

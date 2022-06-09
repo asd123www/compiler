@@ -1,30 +1,116 @@
     .text
-    .globl init
-init:
-    addi sp, sp, -32
-    sw ra, 28(sp)
-    sw a0, 24(sp)
-    sw a1, 20(sp)
+    .globl f1
+f1:
+    addi sp, sp, -128
+    sw ra, 124(sp)
+    sw a0, 120(sp)
+    sw a1, 116(sp)
+    sw a2, 112(sp)
+    sw a3, 108(sp)
+    sw a4, 104(sp)
 
 BasicBlock1:
-    addi t1, sp, 24
+    addi t1, sp, 120
     lw t1, 0(t1)
-    sw t1, 16(sp)
-    lw t1, 20(sp)
-    sw t1, 12(sp)
-    lw t1, 16(sp)
-    sw t1, 8(sp)
+    sw t1, 100(sp)
+    addi t1, sp, 116
+    lw t1, 0(t1)
+    sw t1, 96(sp)
+    addi t1, sp, 112
+    lw t1, 0(t1)
+    sw t1, 92(sp)
+    addi t1, sp, 108
+    lw t1, 0(t1)
+    sw t1, 88(sp)
+    addi t1, sp, 104
+    lw t1, 0(t1)
+    sw t1, 84(sp) //存5个参数.
+
+
+    lw t1, 100(sp)
+    sw t1, 80(sp)
     li t1, 0
-    addi t0, sp, 8
+    addi t0, sp, 80
+    lw t0, 0(t0)
     li t2, 4
     mul t1, t1, t2
     add t0, t0, t1
-    sw t0, 4(sp)
-    li t1, 0
-    lw t2, 4(sp)
-    sw t1, 0(t2)
-    lw ra, 28(sp)
-    addi sp, sp, 32
+    sw t0, 76(sp)
+    addi t1, sp, 76
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    sw t1, 72(sp)
+    lw t1, 96(sp)
+    sw t1, 68(sp)
+    li t1, 1
+    addi t0, sp, 68
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    sw t0, 64(sp)
+    addi t1, sp, 64
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    sw t1, 60(sp)
+    lw t1, 72(sp)
+    lw t2, 60(sp)
+    add t1, t1, t2
+    sw t1, 56(sp)
+    lw t1, 92(sp)
+    sw t1, 52(sp)
+    li t1, 2
+    addi t0, sp, 52
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    sw t0, 48(sp)
+    addi t1, sp, 48
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    sw t1, 44(sp)
+    lw t1, 56(sp)
+    lw t2, 44(sp)
+    add t1, t1, t2
+    sw t1, 40(sp)
+    lw t1, 88(sp)
+    sw t1, 36(sp)
+    li t1, 3
+    addi t0, sp, 36
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    sw t0, 32(sp)
+    addi t1, sp, 32
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    sw t1, 28(sp)
+    lw t1, 40(sp)
+    lw t2, 28(sp)
+    add t1, t1, t2
+    sw t1, 24(sp)
+    lw t1, 84(sp)
+    sw t1, 20(sp)
+    li t1, 4
+    addi t0, sp, 20
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    sw t0, 16(sp)
+    addi t1, sp, 16
+    lw t1, 0(t1)
+    lw t1, 0(t1)
+    sw t1, 12(sp)
+    lw t1, 24(sp)
+    lw t2, 12(sp)
+    add t1, t1, t2
+    sw t1, 8(sp)
+    lw a0, 8(sp)
+    lw ra, 124(sp)
+    addi sp, sp, 128
     ret
 
 
@@ -32,28 +118,183 @@ BasicBlock1:
     .text
     .globl main
 main:
-    addi sp, sp, -64
-    sw ra, 60(sp)
+    li t1, -6232
+    add sp, sp, t1
+    li t3, 6228
+    add t3, sp, t3
+    sw ra, 0(t3)
 
 BasicBlock2:
     li t1, 0
-    sw t1, 16(sp)
+    li t1, 2228
+    add t0, sp, t1
+    li t2, 400
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2224
+    add t3, sp, t3
+    sw t0, 0(t3)
     li t1, 0
-    addi t0, sp, 20
+    li t1, 2224
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 40
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2220
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 0
+    li t1, 2220
+    add t0, sp, t1
+    lw t0, 0(t0)
     li t2, 4
     mul t1, t1, t2
     add t0, t0, t1
-    sw t0, 12(sp)
-    lw t1, 16(sp)
-    sw t1, 8(sp)
-    addi a0, sp, 12
+    li t3, 2216
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 1
+    li t1, 2228
+    add t0, sp, t1
+    li t2, 400
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2212
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 1
+    li t1, 2212
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 40
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2208
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 0
+    li t1, 2208
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2204
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 2
+    li t1, 2228
+    add t0, sp, t1
+    li t2, 400
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2200
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 2
+    li t1, 2200
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 40
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2196
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 0
+    li t1, 2196
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2192
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 3
+    li t1, 2228
+    add t0, sp, t1
+    li t2, 400
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2188
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 3
+    li t1, 2188
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 40
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2184
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 0
+    li t1, 2184
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2180
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 4
+    li t1, 2228
+    add t0, sp, t1
+    li t2, 400
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2176
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 4
+    li t1, 2176
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 40
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2172
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 0
+    li t1, 2172
+    add t0, sp, t1
+    lw t0, 0(t0)
+    li t2, 4
+    mul t1, t1, t2
+    add t0, t0, t1
+    li t3, 2168
+    add t3, sp, t3
+    sw t0, 0(t3)
+    li t1, 2216
+    add a0, sp, t1
     lw a0, 0(a0)
-    lw a1, 8(sp)
-    call init
+    li t1, 2204
+    add a1, sp, t1
+    lw a1, 0(a1)
+    li t1, 2192
+    add a2, sp, t1
+    lw a2, 0(a2)
+    li t1, 2180
+    add a3, sp, t1
+    lw a3, 0(a3)
+    li t1, 2168
+    add a4, sp, t1
+    lw a4, 0(a4)
+    call f1
+
+
+    li t3, 2164
+    add t3, sp, t3
+    sw a0, 0(t3)
     li a0, 0
-    lw ra, 60(sp)
-    addi sp, sp, 64
+    li t3, 6228
+    add t3, sp, t3
+    lw ra, 0(t3)
+    li t1, 6232
+    add sp, sp, t1
     ret
-
-
-

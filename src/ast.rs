@@ -73,8 +73,6 @@ pub enum Statement {
     Open(OpenStatement),
     Closed(ClosedStatement),
 }
-
-
 // open_statement: IF '(' expression ')' statement
 //               | IF '(' expression ')' closed_statement ELSE open_statement
 #[derive(Debug)]
@@ -83,8 +81,6 @@ pub enum OpenStatement {
     Ifelse(Exp, ClosedStatement, Box<OpenStatement>),
     While(Exp, Box<Statement>),
 }
-
-
 // closed_statement: non_if_statement
 //                 | IF '(' expression ')' closed_statement ELSE closed_statement
 #[derive(Debug)]
